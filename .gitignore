@@ -10,3 +10,6 @@ customers/
 node_modules/
 .DS_Store
 Thumbs.db
+
+# 私人資料夾是獨立的 git 倉庫，不可進公開 repo
+私人/
