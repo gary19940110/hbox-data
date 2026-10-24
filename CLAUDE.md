@@ -23,4 +23,5 @@
 2. 完成後 commit 並推上 GitHub（帳號 `gary19940110`）。
 3. 私人資料只能進 `hbox-system-private`，**絕不可推到公開 repo**。推送前檢查路徑。
 4. commit 訊息簡短，說明改了什麼。
-5. `CLAUDE.md` 的備份副本放在 `hbox-data/CLAUDE.md`，修改時兩處同步。
+5. 在 `hbox-system` 下新建資料夾時，自動建對應 GitHub repo 並推上去（預設私人，確定可公開才建公開），並更新上方資料夾結構。
+6. `CLAUDE.md` 的備份副本放在 `hbox-data/CLAUDE.md`，修改時兩處同步。
