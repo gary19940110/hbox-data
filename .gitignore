@@ -1,2 +1,12 @@
+# 公開倉庫：禁止放客戶資料與機密
+.env
+.env.*
+*.key
+*.pem
+secrets/
+customers/
+客戶*/
+*.log
+node_modules/
 .DS_Store
 Thumbs.db
