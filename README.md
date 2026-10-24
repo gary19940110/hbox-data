@@ -4,4 +4,4 @@
 
 
 ## 追蹤台連結
-- 客戶追蹤台：本機版，在私人 repo hbox-system-private/customer-tracker/阿正客戶追蹤台.html（C 版成品 2026-10-24 已刪）
+- 客戶追蹤台：https://gary19940110.github.io/hbox-data/tracker/ （頁面只有程式碼；客戶資料在私人 repo hbox-system-private，要金鑰才讀得到）

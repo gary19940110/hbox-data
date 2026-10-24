@@ -14,9 +14,9 @@
 - 例外：**方案要修改時，一定要先問我**，我同意才改。
 
 ## 資料夾結構（本機 `C:\Users\user\hbox-system`，大環境，本身不是 repo）
-- `hbox-data/`：公開，可公開內容、追蹤台連結 → GitHub 公開 repo `hbox-data`
+- `hbox-data/`：公開，可公開內容、追蹤台連結 → GitHub 公開 repo `hbox-data`；`tracker/` 是客戶追蹤台頁面（GitHub Pages，只放程式碼，絕不放客戶資料）
 - `hbox-system-private/`：私人，客戶資料、機密設定 → GitHub 私人 repo `hbox-system-private`
-- `hbox-system-private/customer-tracker/`：客戶追蹤台（含客戶資料，僅限私人）
+- `hbox-system-private/customer-tracker/`：客戶追蹤台（含客戶資料，僅限私人）；資料檔 `data/tracker.json` 由追蹤台頁面直接讀寫，改之前先 `git pull`
 - `threads-bot/`：Threads 自動發文系統 → GitHub 公開 repo `threads-bot`（GitHub Actions 運作中，中控台 https://gary19940110.github.io/threads-bot/；專案自己的 `CLAUDE.md` 有詳細說明；機器人每小時自動 commit，改之前先 `git pull`）
 - `找物件/`：找社區在售物件、社區資料庫（聖斌分享的模組，有自己的 `CLAUDE.md`）→ GitHub 私人 repo `hbox-find-listings`，**不可公開**
 - 其他部分放在 `hbox-system/` 下，另建資料夾。

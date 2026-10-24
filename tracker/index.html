@@ -1,0 +1,1276 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>阿正客戶追蹤台</title><meta name="robots" content="noindex,nofollow">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one working column — follow-up counts, quick capture, client list sorted by next follow-up, then unverified leads. */
+:root{
+  --bg:#F2F5F4; --surface:#FFFFFF; --fg:#17232A; --muted:#5A6A70; --line:#D6DFDE;
+  --accent:#0E5A63; --accent-fg:#FFFFFF; --accent-soft:#DCEBEA;
+  --late:#B3261E; --late-soft:#FBE7E5; --today:#9A5B00; --today-soft:#FFF1D9;
+  --soon:#2B63A0; --soon-soft:#E3EEFA; --ok:#2C7A4C; --ok-soft:#E1F3E8;
+  --f-display:"Noto Serif TC","Songti TC",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1517; --surface:#162026; --fg:#E5EEEE; --muted:#93A4A8; --line:#26353B;
+  --accent:#62B6BD; --accent-fg:#06272B; --accent-soft:#15363B;
+  --late:#F2877F; --late-soft:#3A1F1D; --today:#F0B65C; --today-soft:#36290F;
+  --soon:#86B4E8; --soon-soft:#18293D; --ok:#78CA98; --ok-soft:#163323; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1517; --surface:#162026; --fg:#E5EEEE; --muted:#93A4A8; --line:#26353B;
+  --accent:#62B6BD; --accent-fg:#06272B; --accent-soft:#15363B;
+  --late:#F2877F; --late-soft:#3A1F1D; --today:#F0B65C; --today-soft:#36290F;
+  --soon:#86B4E8; --soon-soft:#18293D; --ok:#78CA98; --ok-soft:#163323; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:780px;margin:0 auto;padding-block:20px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--f-display);font-size:26px;margin:0;letter-spacing:.02em;text-wrap:balance}
+h3{margin:0;font-size:15px}
+.date{font-family:var(--f-mono);color:var(--muted);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;font:inherit;color:inherit;display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--f-mono);font-size:24px;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.stat.late b{color:var(--late)} .stat.today b{color:var(--today)} .stat.soon b{color:var(--soon)}
+.stat[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-2px}
+.capture{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.capture label{font-weight:700;font-size:14px}
+.hint{color:var(--muted);font-size:13px;margin:0}
+textarea,input,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:64px}
+textarea:focus,input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:8px 14px}
+button.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700}
+button.danger{color:var(--late);border-color:var(--late)}
+button.danger.armed{background:var(--late);color:var(--surface)}
+button.small{padding:4px 10px;font-size:13px}
+button:disabled{opacity:.55;cursor:default}
+.msg{font-size:13px;color:var(--muted);min-height:1em}
+.msg.err{color:var(--late)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border-radius:999px;padding:5px 12px;font-size:13px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.list{display:flex;flex-direction:column;gap:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--line);border-radius:10px;display:flex;flex-direction:column;min-width:0}
+.card-main{display:grid;grid-template-columns:1fr auto;gap:4px 12px;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit;background:none;border:none;border-radius:10px 10px 0 0;padding:12px 14px 8px}
+.card-acts{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 12px}
+.card-acts button,.card-acts a{font-size:13px;padding:6px 12px;min-height:36px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.card-acts .done{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700}
+.qf{display:flex;flex-direction:column;gap:8px;padding:10px 14px 14px;border-top:1px dashed var(--line)}
+.qf textarea{min-height:52px}
+.qf .row button{min-height:36px}
+.memo{display:flex;flex-direction:column;gap:4px;padding:0 14px 12px}
+.memo textarea{min-height:44px;font-size:14px;line-height:1.6;background:var(--today-soft);border-color:transparent;resize:vertical}
+.memo textarea:focus{background:var(--surface);border-color:var(--line)}
+.memo-st{font-size:12px;color:var(--muted);min-height:1em}
+.brief{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.brief-head{margin:0;font-weight:700;font-size:15px;overflow-wrap:anywhere}
+.bbar{display:flex;height:10px;border-radius:999px;overflow:hidden;gap:2px}
+.bbar i{display:block;min-width:6px}
+.blegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted)}
+.blegend span{display:inline-flex;align-items:center;gap:6px}
+.blegend b{width:9px;height:9px;border-radius:50%;display:inline-block}
+.blist{display:flex;flex-direction:column;gap:6px}
+.bitem{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;border-left:4px solid var(--line);padding:9px 12px;background:var(--bg)}
+.bnum{font-family:var(--f-mono);color:var(--muted);font-size:13px;padding-top:1px}
+.bbody{display:flex;flex-direction:column;gap:2px;min-width:0}
+.btitle{font-weight:700;font-size:14px;overflow-wrap:anywhere}
+.bdet{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.plan-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.plan-head h3{font-size:15px}
+.plan-out{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.75;margin:0;background:var(--accent-soft);border-radius:10px;padding:12px 14px}
+.starters{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.starters button{font-size:13px;border-radius:999px;padding:6px 12px}
+.bub-acts{display:flex;gap:14px;align-items:center}
+.badge[hidden]{display:none}
+.badge{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:999px;background:var(--late);color:var(--surface);font-size:12px;font-weight:700;font-family:var(--f-mono);line-height:20px}
+.card.late{border-left-color:var(--late)} .card.today{border-left-color:var(--today)} .card.soon{border-left-color:var(--soon)}
+.card-main .name{font-weight:700;font-size:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-width:0}
+.code{font-family:var(--f-mono);font-size:12px;color:var(--muted);font-weight:500}
+.card-main .need{grid-column:1/-1;color:var(--muted);font-size:13px;min-width:0;overflow-wrap:anywhere}
+.card-main .next{grid-column:1/-1;font-size:14px;min-width:0;overflow-wrap:anywhere}
+.card-main .meta{grid-column:1/-1;font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.warn{color:var(--today)}
+.due{font-family:var(--f-mono);font-size:12px;padding:2px 8px;border-radius:999px;white-space:nowrap;align-self:start}
+.due.late{background:var(--late-soft);color:var(--late)} .due.today{background:var(--today-soft);color:var(--today)}
+.due.soon{background:var(--soon-soft);color:var(--soon)} .due.later{background:var(--accent-soft);color:var(--accent)} .due.none{color:var(--muted);border:1px dashed var(--line)}
+.tag{font-size:12px;font-weight:500;padding:1px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent)}
+.tag.lv-斡旋買方{background:var(--late-soft);color:var(--late)} .tag.lv-A買{background:var(--today-soft);color:var(--today)}
+.tag.lv-B買{background:var(--soon-soft);color:var(--soon)} .tag.lv-C買{background:var(--ok-soft);color:var(--ok)}
+.tag.seen{background:var(--ok-soft);color:var(--ok)}
+.tag.plain{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
+details.leads{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:12px 14px}
+details.leads summary{cursor:pointer;font-weight:700;font-size:14px}
+.lead{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.lead:first-of-type{border-top:none}
+dialog{border:none;border-radius:14px;padding:0;width:min(680px,calc(100vw - 24px));max-height:calc(100dvh - 24px);background:var(--surface);color:var(--fg)}
+dialog::backdrop{background:rgba(8,16,18,.55)}
+.ed{display:flex;flex-direction:column;gap:14px;padding:18px}
+.ed h2{margin:0;font-family:var(--f-display);font-size:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field>span{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.full{grid-column:1/-1}
+.sec{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.props{display:flex;flex-direction:column;gap:10px}
+.prop{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--bg);border-radius:8px;padding:8px}
+.prop input{background:var(--surface);padding:6px 8px;font-size:14px}
+.prop .pn,.prop .pnote{grid-column:1/-1}
+.prop label{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--muted);min-width:0}
+.log{display:flex;flex-direction:column;gap:6px;max-height:240px;overflow:auto}
+.log div{display:grid;grid-template-columns:84px 1fr;gap:8px;font-size:14px}
+.log time{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding-top:2px}
+.log p{margin:0;overflow-wrap:anywhere}
+.log em{font-style:normal;font-size:12px;padding:0 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);margin-right:6px;white-space:nowrap}
+.ai{background:var(--accent-soft);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.ai-out{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7;margin:0}
+.edfoot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;position:sticky;bottom:0;background:var(--surface);padding-top:10px;border-top:1px solid var(--line)}
+.board{min-height:100%}
+@media (max-width:560px){.stats{grid-template-columns:repeat(3,1fr)}.grid2{grid-template-columns:1fr}.prop{grid-template-columns:1fr 1fr}h1{font-size:22px}}
+/* 整合：客戶／物件／帶看 三個分區，共用同一個資料庫 */
+.secnav{display:flex;gap:6px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px}
+.secnav button[data-sec]{border-radius:999px;padding:6px 16px;font-weight:500}
+.secnav button[data-sec][aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:700}
+.secnav .spacer{flex:1}
+.pane{display:flex;flex-direction:column;gap:20px;min-width:0}
+.banner{background:var(--today-soft);color:var(--today);border-radius:10px;padding:10px 12px;font-size:13.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.banner.late{background:var(--late-soft);color:var(--late)}
+.banner button{font-size:13px;padding:4px 10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0;cursor:pointer;text-align:left;width:100%;font:inherit;color:inherit}
+.tile:hover{border-color:var(--accent)}
+.tile .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tile .ttl{font-weight:700;font-size:16px;flex:1;min-width:0;overflow-wrap:anywhere}
+.tile .sub{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.tile .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.tile .price{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.tile .price b{font-family:var(--f-mono);font-size:18px}
+.tile.visit{border-left:4px solid var(--accent)}
+.stagebar{grid-column:1/-1;height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.stagebar i{display:block;height:100%;background:var(--accent)}
+.sigs{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px}
+.sigs label{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
+.sigs input{width:18px;height:18px;flex:none;margin-top:3px;accent-color:var(--accent)}
+.cvis{display:flex;flex-direction:column;gap:6px}
+.cvis button{text-align:left;font-size:13.5px;background:var(--bg)}
+.hist{display:flex;flex-direction:column;gap:2px;font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.tile .sub.warn{color:var(--late)}
+@media (max-width:560px){.sigs{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app" id="app">
+
+<div class="board">
+<div class="wrap">
+  <header>
+    <h1>阿正客戶追蹤台</h1>
+    <span class="date" id="today"></span><button type="button" class="small" id="sync-st" title="同步狀態，點一下立即同步">未連線</button>
+  </header>
+
+  <section class="capture" id="gh-setup" hidden>
+    <label for="gh-token">第一次在這台裝置使用：貼上 GitHub 金鑰</label>
+    <p class="hint">資料存在私人 repo hbox-system-private，頁面本身不含任何客戶資料。金鑰只存在這台裝置的瀏覽器。<br>
+    建立方式：GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token；Repository access 只選 <b>hbox-system-private</b>；Permissions → Contents 選 <b>Read and write</b>。</p>
+    <input id="gh-token" type="password" autocomplete="off" placeholder="github_pat_…">
+    <div class="row"><button type="button" class="primary" id="gh-save">連線</button><span class="msg" id="gh-msg" role="status"></span></div>
+  </section>
+  <section class="brief" id="brief" aria-label="今日晨報">
+    <div class="plan-head"><h3>☀️ 今日晨報</h3><button type="button" class="small" id="brief-copy" hidden>複製晨報</button></div>
+    <p class="brief-head" id="brief-head">正在讀取追蹤台…</p>
+    <div class="bbar" id="brief-bar" hidden></div>
+    <div class="blegend" id="brief-legend"></div>
+    <div class="blist" id="brief-list"></div>
+  </section>
+
+  <nav class="secnav" aria-label="追蹤台分區">
+    <button type="button" data-sec="clients" aria-pressed="true">客戶</button>
+    <button type="button" data-sec="listings" aria-pressed="false">物件<span class="badge" id="lst-badge" hidden></span></button>
+    <button type="button" data-sec="visits" aria-pressed="false">帶看</button>
+    <span class="spacer"></span>
+    <button type="button" class="small" id="btn-export">匯出 CSV</button><button type="button" class="small" id="btn-json">匯出 JSON</button><button type="button" class="small" id="btn-key">金鑰</button>
+  </nav>
+
+  <div class="pane" id="pane-clients">
+  <div class="banner" id="exp-warn" hidden></div>
+
+  <section class="stats" aria-label="追蹤摘要">
+    <button class="stat late" data-f="late" aria-pressed="false"><b>–</b><span>逾期未追</span></button>
+    <button class="stat today" data-f="today" aria-pressed="false"><b>–</b><span>今天要追</span></button>
+    <button class="stat soon" data-f="soon" aria-pressed="false"><b>–</b><span>3 天內</span></button>
+    <button class="stat" data-f="none" aria-pressed="false"><b>–</b><span>未排追蹤</span></button>
+    <button class="stat" data-f="all" aria-pressed="false"><b>–</b><span>客戶總數</span></button>
+  </section>
+
+  <section class="plan" aria-label="今天的作戰順序">
+    <div class="plan-head">
+      <h3>今天先打誰</h3>
+      <div class="row"><button type="button" class="small" id="btn-plan-copy" hidden>複製</button><button type="button" class="primary small" id="btn-plan">AI 排今天</button></div>
+    </div>
+    <p class="hint" id="plan-hint">按「AI 排今天」，依逾期、分類和熱度排出今天的電話順序，每位附一句開場。</p>
+    <p class="plan-out" id="plan-out" hidden></p>
+  </section>
+
+  <section class="capture">
+    <label for="quick">一句話回報／貼上需求單</label>
+    <textarea id="quick" placeholder="例：王小姐今天電話聯絡了，先生週末才有空，週日下午想看北屯電梯大樓"></textarea>
+    <p class="hint">LINE 收到【找房需求單】，整段複製貼進來按「整理」，會直接帶成客戶卡（同手機號碼自動併進舊卡）。平常回報打字或語音都可以。按「整理」後會先打開客戶卡給你確認，改到需求的欄位會標出來，不會直接存。</p>
+    <div class="row">
+      <button class="primary" id="btn-parse">整理</button>
+      <button id="btn-manual">手動新增客戶</button>
+      <span class="msg" id="cap-msg" role="status"></span>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:10px">
+    <div class="filters" id="filters" aria-label="依分類篩選">
+      <button class="chip" data-lv="" aria-pressed="true">全部</button>
+      <button class="chip" data-lv="斡旋買方" aria-pressed="false">斡旋買方</button>
+      <button class="chip" data-lv="A買" aria-pressed="false">A買</button>
+      <button class="chip" data-lv="B買" aria-pressed="false">B買</button>
+      <button class="chip" data-lv="C買" aria-pressed="false">C買</button>
+      <button class="chip" data-lv="其他" aria-pressed="false">賣方／租屋／其他</button>
+      <button class="chip" data-lv="未帶看" aria-pressed="false">未帶看</button>
+    </div>
+    <input id="search" type="search" placeholder="搜尋姓名、編號、社區、區域、紀錄">
+    <div class="list" id="list"><div class="empty">正在讀取客戶資料…</div></div>
+  </section>
+
+  <details class="leads" id="leads" hidden>
+    <summary>待核對線索（未編號，不算正式客戶）</summary>
+    <div id="lead-list"></div>
+  </details>
+  </div>
+
+  <div class="pane" id="pane-listings" hidden>
+    <div class="row"><input id="lst-search" type="search" placeholder="搜尋名稱、區域、類型、格局、屋主" style="flex:1;min-width:0;width:auto"><button type="button" class="primary" id="btn-addlst">＋ 物件</button></div>
+    <div class="filters" id="lst-filters" aria-label="物件狀態">
+      <button class="chip" data-st="" aria-pressed="true">全部</button>
+      <button class="chip" data-st="銷售中" aria-pressed="false">銷售中</button>
+      <button class="chip" data-st="斡旋中" aria-pressed="false">斡旋中</button>
+      <button class="chip" data-st="已成交" aria-pressed="false">已成交</button>
+      <button class="chip" data-st="exp" aria-pressed="false">委託快到期</button>
+    </div>
+    <div class="list" id="lst-list"><div class="empty">正在讀取物件…</div></div>
+  </div>
+
+  <div class="pane" id="pane-visits" hidden>
+    <div class="row" style="justify-content:space-between"><span class="hint" id="vis-sum"></span><button type="button" class="primary" id="btn-addvis">＋ 帶看紀錄</button></div>
+    <p class="hint">帶看存檔後會自動：客戶卡標成已帶看、記一筆紀錄、把物件加進他的「看過物件」，有填追蹤日就排進追蹤。</p>
+    <div class="list" id="vis-list"><div class="empty">正在讀取帶看紀錄…</div></div>
+  </div>
+</div>
+</div>
+</div>
+
+<dialog id="dlg">
+  <form class="ed" id="ed">
+    <h2 id="ed-title">客戶卡</h2>
+    <div class="ai" id="ai-box">
+      <div class="row" style="justify-content:space-between">
+        <span class="hint">用這張卡目前的內容（含還沒存的修改）給下一步建議</span>
+        <div class="row"><button type="button" class="small" id="btn-line">寫 LINE 訊息</button><button type="button" class="primary small" id="btn-ai">AI 建議</button></div>
+      </div>
+      <p class="ai-out" id="ai-out" hidden></p>
+      <div class="row" id="ai-actions" hidden>
+        <button type="button" class="small" id="btn-ai-copy">複製</button>
+        <button type="button" class="small" id="btn-ai-log">把建議加進紀錄</button>
+        <span class="msg" id="ai-msg" role="status"></span>
+      </div>
+    </div>
+    <div class="grid2">
+      <label class="field"><span>編號</span><input id="f-code" placeholder="008"></label>
+      <label class="field"><span>稱呼</span><input id="f-name" required placeholder="王先生"></label>
+      <label class="field"><span>身分</span><select id="f-role"><option>買方</option><option>賣方</option><option>承租</option><option>出租</option><option>屋主開發</option></select></label>
+      <label class="field"><span>分類</span><select id="f-level"><option value="">未分類</option><option>斡旋買方</option><option>A買</option><option>B買</option><option>C買</option></select></label>
+      <label class="field full" style="flex-direction:row;align-items:center;gap:8px"><input id="f-viewed" type="checkbox" style="width:auto"><span style="font-size:14px;color:var(--fg)">✅ 已帶看</span></label>
+      <label class="field"><span>電話 / LINE</span><input id="f-phone" placeholder="未記錄"></label>
+      <label class="field"><span>產品類型</span><input id="f-type" placeholder="大樓／透天／電梯別墅"></label>
+      <label class="field full"><span>客戶預算（照原話寫，和物件開價分開）</span><input id="f-budget"></label>
+      <label class="field full"><span>區域</span><input id="f-area"></label>
+      <label class="field full"><span>需求（房數、車位、坪數、用途、偏好與硬性條件）</span><textarea id="f-need" rows="3"></textarea></label>
+      <label class="field full"><span>同住／同行／決策人</span><input id="f-who"></label>
+      <label class="field"><span>下次追蹤日</span><input id="f-next" type="date"></label>
+      <label class="field"><span>提醒狀態</span><select id="f-rem"><option>僅列待辦</option><option>未查驗</option><option>已成功建立</option><option>建立失敗</option></select></label>
+      <label class="field full"><span>下一步</span><input id="f-action"></label>
+      <label class="field"><span>進件日（客戶第一次進來）</span><input id="f-indate" type="date"></label>
+      <label class="field"><span>來源</span><input id="f-source" placeholder="來電、LINE、591、轉介、店頭"></label>
+    </div>
+    <div class="row">
+      <span class="hint">排下次追蹤：</span>
+      <button type="button" class="small" id="btn-rule">依分類規則</button>
+      <button type="button" class="small" data-plus="1">+1 天</button>
+      <button type="button" class="small" data-plus="3">+3 天</button>
+      <button type="button" class="small" data-plus="7">+7 天</button>
+    </div>
+
+    <div class="sec">
+      <div class="row" style="justify-content:space-between"><h3>看過／斡旋／配案物件</h3><button type="button" class="small" id="btn-addprop">新增物件</button></div>
+      <p class="hint">開價、買方出價、屋主底價、成交價分開填；不知道就空著。</p>
+      <div class="props" id="props"></div>
+    </div>
+
+    <label class="field sec"><span>待確認事項（一行一項）</span><textarea id="f-pending" rows="3"></textarea></label>
+
+    <div class="sec">
+      <h3>成交溫度</h3>
+      <label class="field"><span>斡旋進度</span><select id="f-stage"></select></label>
+      <span class="hint" id="sig-hint">意願訊號（勾兩項以上，考慮升級分類）</span>
+      <div class="sigs" id="sigs"></div>
+    </div>
+
+    <div class="sec" id="c-vis-sec">
+      <div class="row" style="justify-content:space-between"><h3>帶看紀錄</h3><button type="button" class="small" id="btn-c-addvis">＋ 帶看紀錄</button></div>
+      <div class="cvis" id="c-vis"></div>
+    </div>
+
+    <div class="sec">
+      <h3>新增一筆紀錄</h3>
+      <div class="grid2">
+        <label class="field"><span>紀錄類型</span><select id="f-kind"><option>我已回報完成</option><option>尚未回報結果</option><option>已約定看屋</option><option>預定追蹤</option><option>助理建議</option><option>需求單進件</option></select></label>
+        <label class="field"><span>日期</span><input id="f-logdate" type="date"></label>
+        <label class="field full"><span>內容（盡量保留原話）</span><textarea id="f-log" rows="2"></textarea></label>
+      </div>
+      <div class="log" id="ed-log"></div>
+    </div>
+
+    <div class="edfoot">
+      <button type="button" class="danger" id="btn-del">刪除</button>
+      <div class="row">
+        <span class="msg" id="ed-msg" role="status"></span>
+        <button type="button" id="btn-cancel">取消</button>
+        <button type="submit" class="primary" id="btn-save">儲存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-l">
+  <form class="ed" id="ed-l">
+    <h2 id="l-title-h">物件</h2>
+    <div class="grid2">
+      <label class="field full"><span>物件名稱（社區／樓層）</span><input id="l-title" required placeholder="例：惠宇仰德 6樓"></label>
+      <label class="field"><span>行政區</span><select id="l-district"><option value=""></option><option>北屯區</option><option>北區</option><option>東區</option><option>南區</option><option>南屯區</option><option>西屯區</option><option>西區</option><option>中區</option><option>太平區</option><option>大里區</option><option>豐原區</option><option>其他</option></select></label>
+      <label class="field"><span>類型</span><select id="l-ptype"><option value=""></option><option>大樓</option><option>華廈</option><option>電梯別墅</option><option>透天</option><option>公寓</option><option>土地</option><option>店面</option></select></label>
+      <label class="field full"><span>地址</span><input id="l-address"></label>
+      <label class="field"><span>開價（萬）</span><input id="l-price" type="number" step="any" inputmode="decimal"></label>
+      <label class="field"><span>權狀坪數</span><input id="l-ping" type="number" step="any" inputmode="decimal"></label>
+      <label class="field"><span>格局</span><input id="l-layout" placeholder="3房2廳2衛＋平車"></label>
+      <label class="field"><span>狀態</span><select id="l-status"><option>銷售中</option><option>斡旋中</option><option>已成交</option><option>下架</option></select></label>
+      <label class="field"><span>委託</span><select id="l-mandate"><option value=""></option><option>專任</option><option>一般</option><option>同業物件</option><option>未委託</option></select></label>
+      <label class="field"><span>委託到期</span><input id="l-mandateEnd" type="date"></label>
+      <label class="field full"><span>屋主（稱呼／電話）</span><input id="l-owner"></label>
+      <label class="field full"><span>備註（底價只寫給自己看）</span><textarea id="l-notes" rows="3"></textarea></label>
+    </div>
+    <div class="sec" id="l-hist-sec"><h3>調價紀錄</h3><div class="hist" id="l-hist"></div></div>
+    <div class="sec" id="l-vis-sec">
+      <div class="row" style="justify-content:space-between"><h3 id="l-vis-h">帶看紀錄</h3><button type="button" class="small" id="btn-l-addvis">＋ 帶看紀錄</button></div>
+      <div class="cvis" id="l-vis"></div>
+    </div>
+    <div class="edfoot">
+      <button type="button" class="danger" id="l-del">刪除</button>
+      <div class="row"><span class="msg" id="l-msg" role="status"></span><button type="button" id="l-cancel">取消</button><button type="submit" class="primary" id="l-save">儲存</button></div>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-v">
+  <form class="ed" id="ed-v">
+    <h2 id="v-title-h">帶看紀錄</h2>
+    <div class="grid2">
+      <label class="field"><span>帶看日期</span><input id="v-date" type="date" required></label>
+      <label class="field"><span>客戶</span><select id="v-client" required></select></label>
+      <label class="field full"><span>物件</span><select id="v-listing"></select></label>
+      <label class="field full" id="v-place-wrap"><span>物件名稱（物件庫沒有的話直接寫）</span><input id="v-place" placeholder="例：佳福謙邑 12樓"></label>
+      <label class="field full"><span>客戶反應（盡量保留原話）</span><textarea id="v-reaction" rows="2"></textarea></label>
+      <label class="field"><span>喜歡的地方</span><input id="v-likes"></label>
+      <label class="field"><span>疑慮</span><input id="v-concerns"></label>
+      <label class="field full"><span>成交障礙</span><input id="v-obstacles" placeholder="價格、決策人沒到、資金、要先賣舊屋…"></label>
+      <label class="field full"><span>下一步</span><input id="v-next"></label>
+      <label class="field"><span>追蹤日期</span><input id="v-follow" type="date"></label>
+    </div>
+    <div class="ai">
+      <div class="row" style="justify-content:space-between"><span class="hint">依上面內容寫給客戶的 LINE 和給屋主的帶看回報</span><button type="button" class="primary small" id="v-ai">AI 寫話術</button></div>
+      <span class="msg" id="v-ai-msg" role="status"></span>
+    </div>
+    <label class="field"><span>給客戶的 LINE</span><textarea id="v-line" rows="4"></textarea></label>
+    <div class="row"><button type="button" class="small" id="v-copy-line">複製客戶 LINE</button></div>
+    <label class="field"><span>給屋主的帶看回報</span><textarea id="v-owner" rows="4"></textarea></label>
+    <div class="row"><button type="button" class="small" id="v-copy-owner">複製屋主回報</button></div>
+    <div class="edfoot">
+      <button type="button" class="danger" id="v-del">刪除</button>
+      <div class="row"><span class="msg" id="v-msg" role="status"></span><button type="button" id="v-cancel">取消</button><button type="submit" class="primary" id="v-save">儲存</button></div>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,"0");
+const ymd = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const todayStr = () => ymd(new Date());
+const addDays = n => { const d=new Date(); d.setDate(d.getDate()+n); return ymd(d); };
+const daysFrom = s => { if(!s) return null; const [y,m,d]=s.split("-").map(Number); const t=new Date(); t.setHours(0,0,0,0); return Math.round((new Date(y,m-1,d)-t)/86400000); };
+const WD=["日","一","二","三","四","五","六"];
+const RULE={"斡旋買方":1,"A買":2,"B買":3,"C買":7};
+const TRACKED=[["budget","預算"],["area","區域"],["need","需求"],["propType","產品類型"],["level","分類"],["role","身分"],["who","同住／決策人"]];
+$("#today").textContent=(()=>{const d=new Date();return ymd(d).replaceAll("-","/")+" 星期"+WD[d.getDay()];})();
+
+let db=null, sample=null, clients=[], leads=[], lvFilter="", dueFilter="", editing=null, original=null;
+let quickId=null, quickText="", quickPlus="rule", fromLead=null;
+let listings=[], visits=[], sec="clients", lstFilter="", editingL=null, editingV=null;
+let memoDraft={}, memoFocus=null, memoTimers={}, memoRendering=false;
+const STAGES=["未接觸需求","已了解需求","已帶看","有心儀物件","議價／試算中","已下斡旋","簽約","成交"];
+const SIGNALS=["主動問價格可以談多少","帶家人／決策人二次看屋","問貸款、稅費、交屋時程","主動丈量、拍照、問管理費","比較同社區成交行情","問「如果我出 X 萬，屋主會賣嗎」","回覆變快、主動約時間"];
+const telOf=p=>{ const d=String(p||"").replace(/[^\d+]/g,""); return d.replace(/\D/g,"").length>=8?d:""; };
+const lastLogDays=c=>{ const l=(c.log||[]).slice(-1)[0]; return l&&l.d?-daysFrom(l.d):null; };
+async function copyText(t,btn){
+  let ok=false;
+  try{ await navigator.clipboard.writeText(t); ok=true; }catch(e){
+    try{ const ta=document.createElement("textarea"); ta.value=t; ta.style.position="fixed"; ta.style.opacity="0"; document.body.append(ta); ta.select(); ok=document.execCommand("copy"); ta.remove(); }catch(e2){}
+  }
+  if(btn){ const o=btn.dataset.label||btn.textContent; btn.dataset.label=o; btn.textContent=ok?"已複製 ✓":"請長按文字複製"; setTimeout(()=>{btn.textContent=o;},1800); }
+}
+
+function dueClass(c){const n=daysFrom(c.nextDate); if(n===null)return "none"; if(n<0)return "late"; if(n===0)return "today"; if(n<=3)return "soon"; return "later";}
+function dueText(c){const n=daysFrom(c.nextDate); if(n===null)return "未排追蹤"; if(n<0)return "逾期 "+(-n)+" 天"; if(n===0)return "今天"; if(n===1)return "明天"; const[,m,d]=c.nextDate.split("-"); return Number(m)+"/"+Number(d)+"（"+n+" 天後）";}
+const rank=c=>{const n=daysFrom(c.nextDate); return n===null?1e9:n;};
+const el=(tag,cls,txt)=>{const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e;};
+
+/* ---- 每日晨報：最多 15 項，依離成交距離與急迫度排序 ---- */
+const BCAT={push:["成交推進","var(--late)"],visit:["帶看","var(--today)"],follow:["客戶追蹤","var(--accent)"],listing:["物件經營","var(--soon)"],keep:["保溫／補資料","var(--muted)"]};
+const LVW={"斡旋買方":40,"A買":30,"B買":20,"C買":5};
+let briefText="";
+function buildBrief(){
+  const T=[], busy=new Set();
+  const nm=c=>(c.code?c.code+" ":"")+(c.name||"未命名")+(c.level?"（"+c.level+"）":"");
+  visits.forEach(v=>{
+    const n=daysFrom(v.date); if(n!==0&&n!==1) return;
+    const c=clients.find(x=>x.id===v.clientId);
+    T.push({s:n===0?95:70,cat:"visit",t:(n===0?"今天帶看 ":"明天帶看 ")+vPlace(v)+"｜"+(c?c.name:"客戶"),
+      d:"備好實登、競品，先想好怎麼回應這位客戶的疑慮"+(c&&c.budget?"｜預算 "+c.budget:""),open:()=>openVisit(v)});
+    if(c) busy.add(c.id);
+  });
+  clients.forEach(c=>{
+    if(busy.has(c.id)) return;
+    const st=typeof c.stage==="number"?c.stage:0; if(st>=7) return;
+    const lw=(LVW[c.level]||10)+st*3;
+    const n=daysFrom(c.nextDate), idle=lastLogDays(c), sg=(c.signals||[]).filter(Boolean).length;
+    const hot=c.level==="斡旋買方"||st>=5;
+    let k=null;
+    if(n!==null&&n<0) k={s:100+Math.min(-n,30)+lw,cat:hot?"push":"follow",t:"逾期 "+(-n)+" 天｜"+nm(c)};
+    else if(n===0) k={s:90+lw,cat:hot?"push":"follow",t:"今天追蹤｜"+nm(c)};
+    else if(hot) k={s:80+lw,cat:"push",t:"斡旋推進｜"+nm(c),dflt:"回報斡旋進度，確認價差與屋主態度"};
+    else if(sg>=2&&/B買|C買/.test(c.level||"")) k={s:60+lw,cat:"follow",t:"意願升溫｜"+nm(c),dflt:"已有 "+sg+" 個意願訊號，約二次看屋並考慮升 A"};
+    else if(n===1) k={s:55+lw/2,cat:"follow",t:"明天追蹤，今天先準備｜"+nm(c)};
+    else if(/A買/.test(c.level||"")&&n!==null&&n<=3) k={s:52+lw,cat:"follow",t:"A 級，"+n+" 天後追蹤，今天先篩物件｜"+nm(c),dflt:"照需求篩新物件，準備下次通話要給的選項"};
+    else if(/A買|斡旋/.test(c.level||"")&&idle!==null&&idle>=3&&(n===null||n>3)) k={s:50+lw,cat:"keep",t:"A 級保溫，"+idle+" 天沒聯絡｜"+nm(c),dflt:"傳一則新物件或行情，維持熱度"};
+    else if(n===null) k={s:30+lw,cat:"keep",t:"還沒排追蹤日｜"+nm(c),dflt:"決定下次聯絡日和要談的事"};
+    else if(idle!==null&&idle>=14) k={s:20+lw,cat:"keep",t:idle+" 天沒互動｜"+nm(c),dflt:"簡短問候，確認需求有沒有改變"};
+    if(!k) return;
+    const extra=[];
+    const pend=(c.pending||[]).slice(0,2); if(pend.length) extra.push("要問："+pend.join("、"));
+    const lv=visits.filter(v=>v.clientId===c.id).sort((a,b)=>(b.date||"").localeCompare(a.date||""))[0];
+    if(lv&&lv.obstacles) extra.push("上次帶看障礙："+lv.obstacles);
+    if(!telOf(c.phone)) extra.push("沒有電話，先補或改傳 LINE");
+    k.d=[c.nextAction||k.dflt||"打電話確認近況，排下次追蹤日"].concat(extra).join("｜");
+    k.open=()=>openEditor(c); T.push(k);
+  });
+  listings.forEach(l=>{
+    const status=l.status||"銷售中"; if(status!=="銷售中"&&status!=="斡旋中") return;
+    const t=l.title||"未命名物件";
+    if(status==="斡旋中"){ T.push({s:82,cat:"push",t:"斡旋中物件｜"+t,d:"跟屋主回報出價與實登行情，收斂價差",open:()=>openListing(l)}); return; }
+    const m=daysFrom(l.mandateEnd);
+    if(m!==null&&m<=14){ T.push({s:m<0?78:75-m,cat:"listing",t:(m<0?"委託已到期 "+(-m)+" 天":m===0?"委託今天到期":"委託 "+m+" 天後到期")+"｜"+t,d:"約屋主談續約，帶著帶看回報與實登數字談調價",open:()=>openListing(l)}); return; }
+    const lastV=visits.filter(v=>v.listingId===l.id).map(v=>v.date||"").sort().pop();
+    const since=lastV?-daysFrom(lastV):(l.createdAt?-daysFrom(String(l.createdAt).slice(0,10)):null);
+    if(since!==null&&since>=14) T.push({s:35,cat:"listing",t:(lastV?since+" 天沒帶看":"上架 "+since+" 天還沒帶看")+"｜"+t,d:"檢查開價與 591／FB 文案，換標題或照片重新曝光",open:()=>openListing(l)});
+  });
+  if(leads.length) T.push({s:45,cat:"keep",t:leads.length+" 筆線索待核對",d:"能聯絡的轉成客戶卡，排第一次追蹤",open:()=>{const d=$("#leads"); if(d){d.open=true; d.scrollIntoView({behavior:"smooth"});}}});
+  return T.sort((a,b)=>b.s-a.s).slice(0,15);
+}
+function renderBrief(){
+  const box=$("#brief-list"), bar=$("#brief-bar"), leg=$("#brief-legend"), head=$("#brief-head"), cp=$("#brief-copy");
+  if(!box) return;
+  const T=buildBrief();
+  box.replaceChildren(); bar.replaceChildren(); leg.replaceChildren();
+  if(!T.length){ head.textContent=db?"今天沒有到期或逾期的工作，時間留給開發屋主和新客戶。":"正在讀取追蹤台…"; briefText=""; cp.hidden=true; bar.hidden=true; return; }
+  bar.hidden=false; cp.hidden=false;
+  head.textContent="今天 "+T.length+" 件，先做第 1 件："+T[0].t;
+  const cnt={}; T.forEach(x=>{cnt[x.cat]=(cnt[x.cat]||0)+1;});
+  Object.keys(BCAT).forEach(k=>{ if(!cnt[k]) return;
+    const s=el("i"); s.style.flex=String(cnt[k]); s.style.background=BCAT[k][1]; s.title=BCAT[k][0]+" "+cnt[k]; bar.append(s);
+    const g=el("span"), dot=el("b"); dot.style.background=BCAT[k][1]; g.append(dot,BCAT[k][0]+" "+cnt[k]); leg.append(g); });
+  T.forEach((x,i)=>{ const b=el("button","bitem"); b.type="button"; b.style.borderLeftColor=BCAT[x.cat][1];
+    const w=el("span","bbody"); w.append(el("span","btitle",x.t),el("span","bdet",x.d));
+    b.append(el("span","bnum",String(i+1).padStart(2,"0")),w); b.addEventListener("click",x.open); box.append(b); });
+  const d=new Date();
+  briefText="【阿正晨報 "+ymd(d).replaceAll("-","/")+" 星期"+WD[d.getDay()]+"】\n"+T.map((x,i)=>(i+1)+". "+x.t+"\n   "+x.d).join("\n");
+}
+$("#brief-copy").addEventListener("click",e=>copyText(briefText,e.currentTarget));
+
+function render(){
+  renderBrief();
+  const cnt={late:0,today:0,soon:0,none:0};
+  clients.forEach(c=>{const k=dueClass(c); if(k in cnt)cnt[k]++;});
+  document.querySelectorAll(".stat").forEach(b=>{const f=b.dataset.f; b.querySelector("b").textContent=f==="all"?clients.length:cnt[f]; b.setAttribute("aria-pressed",String(f===dueFilter));});
+  const q=$("#search").value.trim().toLowerCase();
+  const rows=clients.filter(c=>{
+    if(lvFilter==="其他"){ if(RULE[c.level]) return false; } else if(lvFilter==="未帶看"){ if(c.viewed) return false; } else if(lvFilter && c.level!==lvFilter) return false;
+    if(dueFilter && dueFilter!=="all" && dueClass(c)!==dueFilter) return false;
+    if(!q) return true;
+    return [c.code,c.name,c.phone,c.area,c.need,c.budget,c.propType,c.nextAction,c.who,c.memo,(c.props||[]).map(p=>p.n+" "+p.note).join(" "),(c.log||[]).map(l=>l.t).join(" ")].join(" ").toLowerCase().includes(q);
+  }).sort((a,b)=>rank(a)-rank(b)||String(a.code||"").localeCompare(String(b.code||"")));
+  const list=$("#list"); memoRendering=true; list.replaceChildren();
+  if(!rows.length){ list.append(el("div","empty",clients.length?"這個條件下沒有客戶。":"還沒有客戶。在上面打一句話，或按「手動新增客戶」。")); }
+  for(const c of rows){
+    const k=dueClass(c), card=el("div","card "+k), b=el("button","card-main"); b.type="button";
+    const nm=el("div","name");
+    if(c.code) nm.append(el("span","code",c.code));
+    nm.append(el("span",null,c.name||"（未命名）"));
+    if(c.level) nm.append(el("span","tag lv-"+c.level,c.level));
+    nm.append(el("span","tag "+(c.viewed?"seen":"plain"),c.viewed?"✅ 已帶看":"未帶看"));
+    if(c.propType) nm.append(el("span","tag plain",c.propType));
+    else if(c.role && c.role!=="買方") nm.append(el("span","tag plain",c.role));
+    const meta=el("div","meta");
+    meta.append(el("span",c.inDate?null:"warn",c.inDate?"進件 "+c.inDate.replaceAll("-","/")+"（第 "+(1-daysFrom(c.inDate))+" 天）":"進件日未記錄"));
+    const pend=(c.pending||[]).length; if(pend) meta.append(el("span","warn","待確認 "+pend+" 項"));
+    if(c.reminder) meta.append(el("span",null,"提醒："+c.reminder));
+    const last=(c.log||[]).slice(-1)[0]; if(last) meta.append(el("span",null,"最近："+last.d.slice(5).replace("-","/")+" "+last.k));
+    const idle=lastLogDays(c); if(idle!==null&&idle>=14) meta.append(el("span","warn","已 "+idle+" 天沒互動"));
+    const vc=visits.filter(v=>v.clientId===c.id).length; if(vc) meta.append(el("span",null,"帶看 "+vc+" 次"));
+    const sg=(c.signals||[]).filter(Boolean).length, up=sg>=2&&/B買|C買/.test(c.level||"");
+    if(sg) meta.append(el("span",up?"warn":null,"意願訊號 "+sg+"/7"+(up?"，考慮升級":"")));
+    const hasStage=typeof c.stage==="number"&&c.stage>0;
+    if(hasStage) meta.append(el("span",null,"進度："+STAGES[c.stage]));
+    b.append(nm, el("span","due "+k,dueText(c)),
+      el("div","need",[c.budget,c.area].filter(Boolean).join("｜")||"預算與區域未記錄"),
+      el("div","next","下一步："+(c.nextAction||"尚未設定")), meta);
+    if(hasStage){ const sb=el("div","stagebar"), bar=el("i"); bar.style.width=((c.stage+1)/STAGES.length*100)+"%"; sb.title="斡旋進度："+STAGES[c.stage]; sb.append(bar); b.append(sb); }
+    b.addEventListener("click",()=>openEditor(c));
+    card.append(b, cardActs(c), memoBox(c));
+    if(quickId===c.id) card.append(quickForm(c));
+    list.append(card);
+  }
+  memoRendering=false;
+  if(memoFocus){ const t=document.getElementById("memo-"+memoFocus.id); if(t){ t.focus(); try{ t.setSelectionRange(memoFocus.s,memoFocus.e); }catch(e){} } }
+  const ll=$("#lead-list"); ll.replaceChildren();
+  $("#leads").hidden=!leads.length;
+  leads.forEach(l=>{const d=el("div","lead"); d.append(el("b",null,l.name)); d.append(el("span",null,l.note||"")); if(l.status) d.append(el("span","hint",l.status));
+    const cv=el("button","small","轉成正式客戶"); cv.type="button"; cv.style.alignSelf="flex-start"; cv.style.marginTop="4px";
+    cv.addEventListener("click",()=>{ fromLead=l.id; openEditor({name:l.name||"",need:l.note||"",role:"買方",reminder:"僅列待辦",inDate:todayStr()},{k:"我已回報完成",t:"由待核對線索轉入"+(l.note?"："+l.note:"")}); });
+    d.append(cv); ll.append(d);});
+
+  renderListings(); renderVisits(); renderExpWarn();
+
+}
+function cardActs(c){
+  const a=el("div","card-acts");
+  const tel=telOf(c.phone);
+  if(tel){ const t=el("a",null,"📞 撥打"); t.href="tel:"+tel; t.target="_blank"; t.rel="noopener"; a.append(t); }
+  const done=el("button","done",quickId===c.id?"收起":"✓ 已聯絡"); done.type="button";
+  done.addEventListener("click",()=>{ if(quickId===c.id){quickId=null;} else {quickId=c.id; quickText=""; quickPlus="rule";} render(); if(quickId) setTimeout(()=>{const t=document.getElementById("qf-text"); if(t) t.focus();},0); });
+  const ln=el("button",null,"💬 LINE 草稿"); ln.type="button"; ln.addEventListener("click",()=>{ openEditor(c); runAI("line"); });
+  const tm=el("button",null,"⏭ 改明天"); tm.type="button"; tm.addEventListener("click",()=>quickSave(c,"",1,"預定追蹤","改到明天再追"));
+  a.append(done, ln, tm);
+  return a;
+}
+/* ---- 隨手補充：每張客戶卡一格，打字自動存，隨時可改 ---- */
+function memoBox(c){
+  const w=el("div","memo");
+  const ta=document.createElement("textarea"); ta.id="memo-"+c.id; ta.rows=2;
+  ta.setAttribute("aria-label",(c.name||"客戶")+" 的隨手補充");
+  ta.placeholder="📝 隨手補充：LINE 新訊息、想到要問的、臨時變動…打字會自動存，之後可以再改";
+  ta.value=(c.id in memoDraft)?memoDraft[c.id]:(c.memo||"");
+  const st=el("span","memo-st", c.id in memoDraft?"編輯中…":(c.memoAt?"上次儲存 "+memoTime(c.memoAt):""));
+  const track=()=>{ memoFocus={id:c.id,s:ta.selectionStart,e:ta.selectionEnd}; };
+  ta.addEventListener("focus",track); ta.addEventListener("keyup",track); ta.addEventListener("click",track);
+  ta.addEventListener("blur",()=>{ if(!memoRendering&&memoFocus&&memoFocus.id===c.id) memoFocus=null; if(c.id in memoDraft) saveMemo(c.id,st,0); });
+  ta.addEventListener("input",()=>{ memoDraft[c.id]=ta.value; track(); st.textContent="編輯中…"; saveMemo(c.id,st,900); });
+  w.append(ta,st); return w;
+}
+function memoTime(iso){ const d=new Date(iso); if(isNaN(d)) return ""; return (ymd(d)===todayStr()?"今天 ":(d.getMonth()+1)+"/"+d.getDate()+" ")+pad(d.getHours())+":"+pad(d.getMinutes()); }
+function saveMemo(id,st,delay){
+  clearTimeout(memoTimers[id]);
+  memoTimers[id]=setTimeout(async()=>{
+    if(!(id in memoDraft)) return;
+    if(!db){ st.textContent="連不到資料庫，內容還在畫面上，請重新整理後再存。"; return; }
+    const val=memoDraft[id], now=new Date().toISOString();
+    try{
+      await db.collection("clients").doc(id).update({memo:val,memoAt:now});
+      if(memoDraft[id]===val) delete memoDraft[id];
+      const s=document.getElementById("memo-"+id); const lab=s&&s.nextElementSibling;
+      if(lab) lab.textContent="已自動儲存 "+memoTime(now);
+    }catch(err){ st.textContent=err&&err.code==="not_granted"?"你沒有寫入權限，只能檢視。":"沒存成功，再打一個字會重試。"; }
+  },delay);
+}
+function quickForm(c){
+  const f=el("div","qf");
+  const ta=document.createElement("textarea"); ta.id="qf-text"; ta.rows=2; ta.placeholder="結果一句話（可空白），例：先生週末才有空，想看北屯三房"; ta.value=quickText;
+  ta.addEventListener("input",()=>{quickText=ta.value;});
+  const n=RULE[c.level];
+  const sel=document.createElement("select"); sel.setAttribute("aria-label","下次追蹤");
+  [["rule",n?"依「"+c.level+"」"+n+" 天後":"3 天後（未分類）"],["1","明天"],["3","3 天後"],["7","7 天後"],["14","2 週後"],["off","先不排"]].forEach(([v,t])=>{const o=el("option",null,t); o.value=v; sel.append(o);});
+  sel.value=quickPlus; sel.addEventListener("change",()=>{quickPlus=sel.value;});
+  const ok=el("button","primary","存紀錄＋排下次"); ok.type="button";
+  ok.addEventListener("click",()=>{ const v=sel.value; const days=v==="off"?null:v==="rule"?(n||3):Number(v); quickSave(c,ta.value.trim(),days,"我已回報完成","已聯絡",ok); });
+  const lb=el("label","field"); lb.append(el("span",null,"下次追蹤"),sel);
+  const r=el("div","row"); r.append(ok);
+  f.append(ta, lb, r);
+  return f;
+}
+async function quickSave(c,note,days,kind,fallback,btn){
+  if(!db){capMsg("目前連不到資料庫，請重新整理頁面。",true);return;}
+  if(btn) btn.disabled=true;
+  const log=(c.log||[]).concat([{d:todayStr(),k:kind,t:note||fallback}]).slice(-300);
+  const patch={log,updatedAt:new Date().toISOString()};
+  if(days!==null) patch.nextDate=addDays(days); else patch.nextDate="";
+  try{ await db.collection("clients").doc(c.id).update(patch); quickId=null; quickText="";
+    capMsg("已記錄 "+(c.name||"")+(days!==null?"，下次 "+patch.nextDate.slice(5).replace("-","/")+" 追。":"。"));
+  }catch(err){ capMsg(err&&err.code==="not_granted"?"你沒有寫入權限，只能檢視。":"沒存成功，請再按一次。",true); if(btn) btn.disabled=false; }
+}
+
+function propRow(p={}){
+  const w=el("div","prop");
+  const f=(cls,label,key,ph)=>{const l=el("label",cls); l.append(label); const i=document.createElement("input"); i.dataset.k=key; i.value=p[key]||""; if(ph)i.placeholder=ph; l.append(i); return l;};
+  w.append(f("pn","物件（社區／樓層／門牌）","n"), f("","物件開價","ask","未記錄"), f("","買方出價","offer","未記錄"), f("","屋主底價","floor","未記錄"), f("","成交價","deal","未記錄"), f("pnote","結果／備註","note"));
+  const rm=el("button","small danger","移除"); rm.type="button"; rm.style.gridColumn="1/-1"; rm.style.justifySelf="end";
+  rm.addEventListener("click",()=>{ if(!rm.classList.contains("armed")){rm.classList.add("armed"); rm.textContent="確定移除？"; return;} w.remove(); });
+  w.append(rm); return w;
+}
+function readProps(){ return [...document.querySelectorAll("#props .prop")].map(w=>{const o={}; w.querySelectorAll("input").forEach(i=>o[i.dataset.k]=i.value.trim()); return o;}).filter(o=>Object.values(o).some(Boolean)); }
+
+function openEditor(c, draft){
+  editing = c && c.id ? clients.find(x=>x.id===c.id) : null;
+  original = editing ? JSON.parse(JSON.stringify(editing)) : null;
+  const d=c||{};
+  $("#ed-title").textContent = editing ? ((d.code?d.code+" ":"")+(d.name||"客戶卡")) : "新增客戶";
+  const set=(id,v)=>{$(id).value=v??"";};
+  set("#f-code",d.code); set("#f-name",d.name); $("#f-role").value=d.role||"買方"; $("#f-level").value=d.level||"";
+  set("#f-phone",d.phone); set("#f-type",d.propType); set("#f-budget",d.budget); set("#f-area",d.area); set("#f-need",d.need); set("#f-who",d.who);
+  set("#f-next",d.nextDate); $("#f-rem").value=d.reminder||"僅列待辦"; set("#f-action",d.nextAction); set("#f-source",d.source);
+  set("#f-indate", d.inDate || (editing ? "" : todayStr()));
+  $("#f-viewed").checked = !!d.viewed;
+  set("#f-pending",(d.pending||[]).join("\n"));
+  $("#f-stage").value=String(typeof d.stage==="number"?d.stage:0);
+  renderSigs(d.signals||[]);
+  $("#c-vis-sec").hidden=!editing;
+  if(editing) fillVisList($("#c-vis"),visits.filter(v=>v.clientId===editing.id),v=>vPlace(v));
+  const pr=$("#props"); pr.replaceChildren(); (d.props||[]).forEach(p=>pr.append(propRow(p)));
+  $("#f-kind").value=(draft&&draft.k)||"我已回報完成"; set("#f-logdate",todayStr()); set("#f-log",draft?draft.t:"");
+  const log=$("#ed-log"); log.replaceChildren();
+  (d.log||[]).slice().reverse().forEach(l=>{const r=el("div"); const p=el("p"); p.append(el("em",null,l.k||"紀錄"), l.t); r.append(el("time",null,l.d), p); log.append(r);});
+  aiStop(); $("#ai-out").hidden=true; $("#ai-out").textContent=""; $("#ai-actions").hidden=true; $("#ai-msg").textContent="";
+  $("#btn-del").hidden=!editing; $("#btn-del").classList.remove("armed"); $("#btn-del").textContent="刪除";
+  edMsg("");
+  $("#dlg").showModal();
+}
+$("#btn-addprop").addEventListener("click",()=>$("#props").append(propRow()));
+$("#btn-rule").addEventListener("click",()=>{const n=RULE[$("#f-level").value]; if(!n){edMsg("先選分類，才能依規則排日期。",true);return;} $("#f-next").value=addDays(n); edMsg("已依「"+$("#f-level").value+"」排 "+n+" 天後。");});
+document.querySelectorAll("[data-plus]").forEach(b=>b.addEventListener("click",()=>{$("#f-next").value=addDays(Number(b.dataset.plus));}));
+$("#btn-cancel").addEventListener("click",()=>$("#dlg").close());
+
+$("#ed").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!db){edMsg("目前連不到資料庫，請重新整理頁面再試。",true);return;}
+  const now=new Date().toISOString();
+  const base=editing?JSON.parse(JSON.stringify(original)):{createdAt:now,log:[]};
+  delete base.id;
+  if(editing){ const cur=clients.find(x=>x.id===editing.id)||{}; base.memo=(editing.id in memoDraft)?memoDraft[editing.id]:(cur.memo||""); if(cur.memoAt) base.memoAt=cur.memoAt; }
+  const body=Object.assign(base,{
+    code:$("#f-code").value.trim(), name:$("#f-name").value.trim(), role:$("#f-role").value, level:$("#f-level").value,
+    phone:$("#f-phone").value.trim(), propType:$("#f-type").value.trim(), budget:$("#f-budget").value.trim(), area:$("#f-area").value.trim(),
+    need:$("#f-need").value.trim(), who:$("#f-who").value.trim(), nextDate:$("#f-next").value, reminder:$("#f-rem").value,
+    nextAction:$("#f-action").value.trim(), source:$("#f-source").value.trim(), inDate:$("#f-indate").value, viewed:$("#f-viewed").checked,
+    pending:$("#f-pending").value.split("\n").map(s=>s.trim()).filter(Boolean), props:readProps(),
+    stage:Number($("#f-stage").value)||0, signals:readSigs(), updatedAt:now});
+  const add=[];
+  if(original){
+    const ch=TRACKED.filter(([k])=>(original[k]||"")!==(body[k]||"")).map(([k,l])=>l+"：「"+(original[k]||"未記錄")+"」→「"+(body[k]||"空白")+"」");
+    if(ch.length) add.push({d:todayStr(),k:"客需異動",t:ch.join("；")});
+  }
+  const nl=$("#f-log").value.trim();
+  if(nl) add.push({d:$("#f-logdate").value||todayStr(),k:$("#f-kind").value,t:nl});
+  body.log=(body.log||[]).concat(add).slice(-300);
+  $("#btn-save").disabled=true; edMsg("儲存中…");
+  try{
+    if(editing) await db.collection("clients").doc(editing.id).set(body);
+    else { await db.collection("clients").add(body); if(fromLead){ try{ await db.collection("leads").doc(fromLead).delete(); }catch(e){} } }
+    fromLead=null; $("#dlg").close(); capMsg("已儲存 "+body.name+(add.some(a=>a.k==="客需異動")?"，舊需求已留在紀錄裡。":"。")); $("#quick").value="";
+  }catch(err){ edMsg(err&&err.code==="not_granted"?"你沒有寫入權限，只能檢視。":"沒存成功（"+(err&&err.code||"錯誤")+"），請再按一次儲存。",true); }
+  finally{ $("#btn-save").disabled=false; }
+});
+$("#btn-del").addEventListener("click",async()=>{
+  const b=$("#btn-del");
+  if(!b.classList.contains("armed")){b.classList.add("armed"); b.textContent="確定刪除整位客戶？再按一次"; return;}
+  try{ await db.collection("clients").doc(editing.id).delete(); $("#dlg").close(); capMsg("已刪除。"); }catch(err){ edMsg("刪除失敗，請再試一次。",true); }
+});
+let aiCtl=null;
+let aiMode="advice";
+function aiStop(){ if(aiCtl){ try{aiCtl.abort();}catch(e){} aiCtl=null; } $("#btn-ai").disabled=false; $("#btn-ai").textContent="AI 建議"; $("#btn-line").disabled=false; $("#btn-line").textContent="寫 LINE 訊息"; }
+$("#dlg").addEventListener("close",()=>{ aiStop(); fromLead=null; });
+$("#btn-ai").addEventListener("click",()=>runAI("advice"));
+$("#btn-line").addEventListener("click",()=>runAI("line"));
+$("#btn-ai-copy").addEventListener("click",e=>copyText($("#ai-out").textContent.trim(),e.currentTarget));
+async function runAI(mode){
+  aiStop(); aiMode=mode;
+  const out=$("#ai-out");
+  if(!sample){ out.hidden=false; out.textContent="這個畫面不能使用 AI 建議（這個版本不含 AI）。"; return; }
+  const card={
+    編號:$("#f-code").value, 稱呼:$("#f-name").value, 身分:$("#f-role").value, 分類:$("#f-level").value||"未分類",
+    已帶看:$("#f-viewed").checked?"是":"否", 產品類型:$("#f-type").value, 客戶預算:$("#f-budget").value, 區域:$("#f-area").value, 需求:$("#f-need").value,
+    同住同行決策人:$("#f-who").value, 進件日:$("#f-indate").value, 下次追蹤日:$("#f-next").value, 下一步:$("#f-action").value,
+    來源:$("#f-source").value, 待確認:$("#f-pending").value.split("\n").filter(Boolean),
+    隨手補充:editing?((editing.id in memoDraft)?memoDraft[editing.id]:((clients.find(x=>x.id===editing.id)||{}).memo||"")):"",
+    物件:readProps().map(p=>({物件:p.n,開價:p.ask,買方出價:p.offer,屋主底價:p.floor,成交價:p.deal,備註:p.note})),
+    紀錄:((editing&&editing.log)||[]).slice(-25).map(l=>l.d+"【"+(l.k||"紀錄")+"】"+l.t),
+    尚未存的新紀錄:$("#f-log").value.trim(),
+    斡旋進度:STAGES[Number($("#f-stage").value)||0],
+    意願訊號:readSigs().map((x,i)=>x?SIGNALS[i]:null).filter(Boolean),
+    帶看紀錄:editing?visits.filter(v=>v.clientId===editing.id).slice(-8).map(v=>({日期:v.date,物件:vPlace(v),反應:v.reaction||"",喜歡:v.likes||"",疑慮:v.concerns||"",障礙:v.obstacles||""})):[]
+  };
+  const d=new Date();
+  const linePrompt=`你是台中房仲黃守正（阿正，台灣房屋松竹十一期特許加盟店）。幫他寫一則現在就能直接傳給這位客戶的 LINE 訊息。今天是 ${todayStr()}（星期${WD[d.getDay()]}）。
+規則：
+- 繁體中文、口語、親切有禮，像真人傳的訊息，不要 Markdown 符號，不要用【】小標，不要加任何說明，只輸出訊息本身。
+- 3～6 行，開頭稱呼客戶（用卡片上的稱呼），自稱「阿正」。
+- 依卡片最近紀錄接續話題：給一個對他有價值的理由聯絡（新物件、行情、上次看屋的回饋、約時間），最後用一個好回答的問題收尾（例如二選一的看屋時段）。
+- 只用卡片上有的事實，不可編造物件、價格、成交行情或期限；沒有具體物件就問條件或約時間。
+- 不要催促成交、不要過度推銷。
+
+客戶卡：
+${JSON.stringify(card)}`;
+  const prompt=mode==="line"?linePrompt:`你是台中頂尖房仲，也是黃守正（阿正，台灣房屋松竹十一期特許加盟店）最好的夥伴。他的目標是提高有效追蹤、帶看與成交。核心價值：利他、專業、誠信。
+今天是 ${todayStr()}（星期${WD[d.getDay()]}）。根據下面這張客戶卡，給他手機上好讀的建議，繁體中文，不要用 Markdown 符號（不要 # * |），用【】當小標，每段短。
+
+規則：
+- 只根據卡片內容。已知事實、你的推測、待確認要分清楚，推測要寫「推測」。不可編造電話、預算、家庭成員、價格或期限。
+- 物件開價、買方出價、屋主底價、成交價、客戶預算不可混用。
+- 追蹤規則：斡旋買方每天、A買兩天、B買每週兩次、C買每週一次。若下次追蹤日已過或沒排，要指出。
+- 以高端房仲角度主動提醒他容易忽略的業務細節（同業物件要先談合作、決策人是否到場、資金與期限、斡旋文件、實價行情準備等，視卡片內容挑相關的）。
+
+輸出格式：
+【現況判讀】2～3 句：這位客戶離成交多近、最大的機會與卡點
+【下一步】1～3 個具體行動，含建議日期
+【電話開場】一段可以直接講的話術
+【注意細節】1～3 點
+【只問你一題】最影響成交或配案的一個問題
+
+客戶卡：
+${JSON.stringify(card)}`;
+  aiCtl=new AbortController();
+  const btn=mode==="line"?$("#btn-line"):$("#btn-ai"); $("#btn-ai").disabled=true; $("#btn-line").disabled=true; btn.textContent=mode==="line"?"撰寫中…":"思考中…";
+  out.hidden=false; out.textContent=mode==="line"?"正在寫 LINE 訊息…":"正在讀這張卡…"; $("#ai-actions").hidden=true;
+  $("#btn-ai-log").textContent=mode==="line"?"記成已傳 LINE":"把建議加進紀錄";
+  try{
+    const r=await sample(prompt,{cache:false,signal:aiCtl.signal,onText:({text})=>{ out.textContent=text; }});
+    out.textContent=r.text; $("#ai-actions").hidden=false; $("#ai-msg").textContent=r.truncated?"建議被截斷了，可以再按一次。":"";
+  }catch(err){
+    if(err&&err.code==="not_granted"){ out.textContent="沒有開啟 AI 權限，所以無法給建議。可以在這個頁面的權限設定裡允許後再試。"; }
+    else if(err&&err.code==="rate_limited"){ out.textContent="使用太頻繁了，請過一下再按。"; }
+    else if(err&&(err.name==="AbortError"||err.code==="aborted")){ out.textContent=""; out.hidden=true; }
+    else { out.textContent="這次沒拿到建議，請再按一次。"; }
+  }finally{ aiCtl=null; $("#btn-ai").disabled=false; $("#btn-ai").textContent="AI 建議"; $("#btn-line").disabled=false; $("#btn-line").textContent="寫 LINE 訊息"; }
+}
+$("#btn-ai-log").addEventListener("click",()=>{
+  const t=$("#ai-out").textContent.trim(); if(!t) return;
+  const line=aiMode==="line";
+  $("#f-kind").value=line?"我已回報完成":"助理建議"; $("#f-logdate").value=todayStr();
+  $("#f-log").value = ($("#f-log").value.trim()? $("#f-log").value.trim()+"\n\n":"") + (line?"已傳 LINE：":"") + t;
+  if(line&&!$("#f-next").value){ const n=RULE[$("#f-level").value]||3; $("#f-next").value=addDays(n); }
+  $("#ai-msg").textContent="已放進「新增一筆紀錄」，按儲存才會存。";
+});
+function edMsg(t,err){const m=$("#ed-msg"); m.textContent=t; m.className="msg"+(err?" err":"");}
+function capMsg(t,err){const m=$("#cap-msg"); m.textContent=t; m.className="msg"+(err?" err":"");}
+
+/* ===== 找房需求單匯入：LINE 收到的【找房需求單】貼進來，直接帶成客戶卡 ===== */
+const INTAKE_KEYS={"稱呼":"name","手機":"phone","目前住":"living","買房主要目的":"purpose","買房目的":"purpose","住的人有哪些":"family","同住成員":"family","名下目前有房子嗎":"owned","舊屋是否委託阿正賣":"sellOld","舊屋資料":"oldHouse","房屋類型":"type","物件類型":"type","房間數":"rooms","房數":"rooms","房間數補充":"roomsOther","使用坪數":"size","車位需求":"parking","車位":"parking","屋齡":"age","總價預算":"budget","總價":"budget","自備款":"down","房貸試算":"loan","資金試算":"loan","想住的區域":"area","區域":"area","常去地方／通勤":"commute","通勤方式":"transport","通勤可接受時間":"commuteMax","最在意的 3 件事":"priority","最在意":"priority","指定學區":"school","抗性偏好":"fsLevel","風水在意項目":"fs","不能接受的環境、設施":"avoid","預計購屋時間":"timing","購買時間":"timing","方便看房時間":"viewTime","是否問過貸款初審":"preApproval","出價斡旋紀錄":"offer","斡旋／出價":"offer","喜歡的社區":"liked","已看過幾間":"seen","之前沒買的原因":"whyNot","其他備註":"memo","想說的話":"memo","年齡層":"ageGroup","決策者":"decider","持有時間":"hold","樓層偏好":"floor","邊間偏好":"corner","座向偏好":"facing","座向補充":"facingOther","西曬":"west","裝潢需求":"reno","管理費上限":"mgmt","理想生活":"dream"};
+const normTel=s=>{ let d=String(s||"").replace(/\D/g,""); if(d.startsWith("88609")) d=d.slice(3); else if(d.startsWith("8869")) d="0"+d.slice(3); return d; };
+function parseIntake(text){
+  const f={}, extra=[];
+  String(text).split(/\r?\n/).forEach(raw=>{
+    const line=raw.trim();
+    if(!line || line.includes("【找房需求單】") || /^[—\-]{2,}.*[—\-]{2,}$/.test(line)) return;
+    const i=line.search(/[：:]/);
+    if(i<1){ extra.push(line); return; }
+    const lab=line.slice(0,i).replace(/（[^）]*）|\([^)]*\)/g,"").trim(), v=line.slice(i+1).trim();
+    if(!v || /^(未填|無)$/.test(v)) return;
+    const k=INTAKE_KEYS[lab];
+    if(k) f[k]=f[k]? f[k]+"；"+v : v; else extra.push(line);
+  });
+  return {f,extra};
+}
+function intakeCard(f,extra){
+  const j=(...a)=>a.filter(Boolean).join("；"), L=(lab,v)=>v? lab+"："+v : "";
+  const need=[L("目的",f.purpose),L("房數",j(f.rooms,f.roomsOther)),L("使用坪數",f.size),L("車位",f.parking),L("屋齡",f.age),
+    L("最在意",f.priority),L("學區",f.school),L("通勤",j(f.commute,f.transport,f.commuteMax)),L("喜歡的社區",f.liked),
+    L("抗性",j(f.fsLevel,f.fs,f.avoid)),L("資金試算",f.loan),L("購屋時間",f.timing),L("方便看房",f.viewTime),L("貸款初審",f.preApproval),
+    L("已看過",f.seen),L("斡旋／出價",f.offer),L("之前沒買",f.whyNot),L("目前住",f.living),L("名下房子",j(f.owned,f.sellOld,f.oldHouse)),
+    L("年齡層",f.ageGroup),L("持有",f.hold),L("樓層",f.floor),L("邊間",f.corner),L("座向",j(f.facing,f.facingOther,f.west)),
+    L("裝潢",f.reno),L("管理費",f.mgmt),L("理想生活",f.dream),L("客戶備註",f.memo),...extra].filter(Boolean).join("\n");
+  const pending=[];
+  if(f.preApproval && !/額度足夠/.test(f.preApproval)) pending.push("貸款初審："+f.preApproval+"，帶看前先確認可貸成數");
+  if(/先賣舊屋/.test(f.owned||"")) pending.push("要先賣舊屋（"+(f.sellOld||"委售意願未填")+"）"+(f.oldHouse?"："+f.oldHouse:"")+"，可同步談賣方委託");
+  if(/要問父母|給家人看|夫妻一起/.test(f.decider||"")) pending.push("決策人："+f.decider+"，約看時請決策人一起到");
+  if(/斡旋中/.test(f.offer||"")) pending.push("正在別處斡旋："+f.offer+"，先問結果與期限");
+  if(/家人不同意|貸款不夠/.test(f.whyNot||"")) pending.push("之前沒買的原因："+f.whyNot+"，這次先處理這點");
+  if(/請阿正建議/.test(f.area||"")) pending.push("區域還沒定，用上班／學校地點幫他收斂");
+  return {name:f.name||"",phone:f.phone||"",role:"買方",propType:f.type||"",budget:j(f.budget,f.down&&("自備款 "+f.down)),
+    area:f.area||"",need,who:j(f.family,f.decider&&("決策："+f.decider)),source:"找房需求單（LINE）",pending};
+}
+function importIntake(text){
+  const {f,extra}=parseIntake(text);
+  if(!f.name && !f.phone){ capMsg("讀不到需求單的稱呼和手機，請確認貼上的是完整內容。",true); return; }
+  const card=intakeCard(f,extra), draft={k:"需求單進件",t:text};
+  const tel=normTel(card.phone), ex=tel.length>=9 && clients.find(c=>normTel(c.phone)===tel);
+  const act="打電話確認需求、約看房"+(f.viewTime?"（方便："+f.viewTime+"）":"");
+  if(ex){
+    const m=JSON.parse(JSON.stringify(ex)), changed=[];
+    [["propType","產品類型"],["budget","預算"],["area","區域"],["need","需求"],["who","同住／決策人"]].forEach(([k,l])=>{ if(card[k] && card[k]!==(ex[k]||"")){ m[k]=card[k]; changed.push(l); } });
+    m.pending=[...new Set([...(ex.pending||[]),...card.pending])];
+    if(!m.nextDate){ m.nextDate=todayStr(); m.nextAction=m.nextAction||act; }
+    openEditor(m,draft);
+    capMsg("這支手機已是 "+(ex.code||"")+" "+ex.name+"，需求單併進他的卡。"+(changed.length?"會改到 "+changed.join("、")+"，舊內容存檔時自動留在紀錄。":""), !!changed.length);
+    if(changed.length) edMsg("會改到："+changed.join("、"),true);
+  }else{
+    openEditor(Object.assign({code:nextCode(),level:"",nextDate:todayStr(),nextAction:act,reminder:"僅列待辦",inDate:todayStr()},card),draft);
+    capMsg("新客戶 "+(card.name||"")+" 已帶入，追蹤排今天"+(card.pending.length?"，另有 "+card.pending.length+" 項待確認":"")+"。分類請你判斷後按儲存。");
+  }
+}
+
+$("#btn-manual").addEventListener("click",()=>openEditor(null,$("#quick").value.trim()?{k:"我已回報完成",t:$("#quick").value.trim()}:null));
+$("#btn-parse").addEventListener("click",async()=>{
+  const text=$("#quick").value.trim();
+  if(!text){capMsg("先在框裡打一句話。",true);return;}
+  if(text.includes("【找房需求單】")){ importIntake(text); return; }
+  if(!sample){capMsg("這個畫面不能用 AI 整理，已改成手動填寫。"); openEditor(null,{k:"我已回報完成",t:text}); return;}
+  const btn=$("#btn-parse"); btn.disabled=true; capMsg("整理中…");
+  const roster=clients.map(c=>({code:c.code||"",name:c.name}));
+  const prompt=`你是台中房仲黃守正（阿正）的業務助理。今天是 ${todayStr()}（星期${WD[new Date().getDay()]}）。把下面這段口語回報整理成一個 JSON 物件，只回 JSON。
+規則：沒提到的欄位一律空字串，絕不推測；預算照原話寫；不要把物件開價當成客戶預算。
+欄位：
+- match：這段話講的是下列既有客戶哪一位，填他的 code；只有姓名完全對得上且沒有歧義才填。若「王小姐」這類稱呼可能對到多位，填空字串並把 ambiguous 設為那些 code 用逗號分隔。
+- ambiguous
+- name、phone、role（買方/賣方/承租/出租/屋主開發）、level（斡旋買方/A買/B買/C買，只有他明講才填）
+- propType、budget、area、need、who（同住或決策人）
+- nextDate（YYYY-MM-DD，把「週六」「下週二」「明天」換算；沒提就空）
+- inDate（新客戶第一次進來的日期 YYYY-MM-DD；他說「上週來電」等就換算，沒提就空字串）
+- nextAction（下一步，含時間地點物件）
+- kind（這次回報屬於：我已回報完成/尚未回報結果/已約定看屋/預定追蹤）
+- log（這次發生的事，盡量保留原話）
+既有客戶：${JSON.stringify(roster)}
+回報：${text}`;
+  try{
+    const r=await sample.json(prompt,{modelTier:"quick",cache:false});
+    const o=(r&&typeof r==="object")?r:{}; const s=k=>typeof o[k]==="string"?o[k].trim():"";
+    const kinds=["我已回報完成","尚未回報結果","已約定看屋","預定追蹤"];
+    const draft={k:kinds.includes(s("kind"))?s("kind"):"我已回報完成", t:s("log")||text};
+    const okDate=/^\d{4}-\d{2}-\d{2}$/.test(s("nextDate"))?s("nextDate"):"";
+    const ex=s("match")&&clients.find(c=>c.code===s("match"));
+    if(s("ambiguous")){ capMsg("這句話可能對到多位客戶（"+s("ambiguous")+"），請在名單點選正確的人再記錄。",true); return; }
+    if(ex){
+      const m=JSON.parse(JSON.stringify(ex)); const changed=[];
+      [["phone","電話"],["propType","產品類型"],["budget","預算"],["area","區域"],["need","需求"],["who","同住／決策人"]].forEach(([k,l])=>{ if(s(k)&&s(k)!==(ex[k]||"")){m[k]=s(k); changed.push(l);} });
+      if(s("level")&&s("level")!==ex.level){m.level=s("level"); changed.push("分類");}
+      if(okDate) m.nextDate=okDate; if(s("nextAction")) m.nextAction=s("nextAction");
+      openEditor(m,draft);
+      capMsg(changed.length?"對到 "+(ex.code||"")+" "+ex.name+"。注意：會改到 "+changed.join("、")+"，確認無誤再存。":"對到 "+(ex.code||"")+" "+ex.name+"，確認後按儲存。", !!changed.length);
+      if(changed.length) edMsg("會改到："+changed.join("、"),true);
+    }else{
+      openEditor({name:s("name"),phone:s("phone"),role:s("role")||"買方",level:s("level"),propType:s("propType"),budget:s("budget"),area:s("area"),need:s("need"),who:s("who"),nextDate:okDate,nextAction:s("nextAction"),reminder:"僅列待辦",inDate:/^\d{4}-\d{2}-\d{2}$/.test(s("inDate"))?s("inDate"):todayStr()},draft);
+      capMsg("沒有對到既有客戶，當成新客戶。確認後按儲存。");
+    }
+  }catch(err){
+    if(err&&err.code==="not_granted"){sample=null; capMsg("沒有開啟 AI 整理權限，已改成手動填寫。");} else capMsg("整理失敗，已改成手動填寫。");
+    openEditor(null,{k:"我已回報完成",t:text});
+  }finally{btn.disabled=false;}
+});
+
+let planCtl=null;
+$("#btn-plan-copy").addEventListener("click",e=>copyText($("#plan-out").textContent.trim(),e.currentTarget));
+$("#btn-plan").addEventListener("click",async()=>{
+  const out=$("#plan-out"), btn=$("#btn-plan");
+  if(!sample){ out.hidden=false; out.textContent="這個畫面不能用 AI（這個版本不含 AI）。"; return; }
+  if(!clients.length){ out.hidden=false; out.textContent="還沒有客戶，先在下面新增客戶。"; return; }
+  if(planCtl){ try{planCtl.abort();}catch(e){} }
+  planCtl=new AbortController();
+  const pick=clients.filter(c=>{const k=dueClass(c); const idle=lastLogDays(c); return k==="late"||k==="today"||k==="soon"||k==="none"||(idle!==null&&idle>=14);})
+    .sort((a,b)=>rank(a)-rank(b)).slice(0,40)
+    .map(c=>({編號:c.code||"",稱呼:c.name,分類:c.level||"未分類",身分:c.role||"",已帶看:c.viewed?"是":"否",電話:telOf(c.phone)?"有":"無",預算:c.budget||"",區域:c.area||"",需求:String(c.need||"").slice(0,120),追蹤:dueText(c),下一步:c.nextAction||"",待確認:(c.pending||[]).slice(0,3),最近紀錄:(c.log||[]).slice(-2).map(l=>l.d+"【"+(l.k||"")+"】"+String(l.t||"").slice(0,120))}));
+  if(!pick.length){ out.hidden=false; out.textContent="今天沒有逾期或到期的客戶，可以把時間花在開發新客戶或整理物件。"; return; }
+  const d=new Date();
+  const prompt=`你是台中頂尖房仲，也是黃守正（阿正，台灣房屋松竹十一期特許加盟店）的業務教練。今天是 ${todayStr()}（星期${WD[d.getDay()]}）。下面是他今天該處理的客戶（逾期、今天到期、3天內、未排追蹤、或很久沒互動）。幫他排出今天的行動順序，手機好讀，繁體中文，不要 Markdown 符號（不要 # * |），用【】當小標。
+排序原則：離成交越近越先（斡旋買方 > A買 > 已帶看 > B買 > C買），逾期越久越先，沒電話的放後面改傳 LINE。
+只根據資料，不可編造價格、物件或家庭成員；推測要寫「推測」。
+
+輸出格式：
+【先打這幾位】最多 6 位，每位一行：順序. 編號 稱呼（分類）｜為什麼現在打｜一句開場（用「我是阿正」）
+【改傳 LINE 就好】最多 4 位，一行一位附一句訊息重點；沒有就寫「無」
+【快冷掉的客戶】很久沒互動或未排追蹤的，一行一位附建議；沒有就寫「無」
+【今天一個提醒】一句最容易被忽略的業務細節
+
+客戶：
+${JSON.stringify(pick)}`;
+  btn.disabled=true; btn.textContent="排序中…"; out.hidden=false; out.textContent="正在看今天的名單…"; $("#btn-plan-copy").hidden=true; $("#plan-hint").hidden=true;
+  try{
+    const r=await sample(prompt,{cache:false,signal:planCtl.signal,onText:({text})=>{ out.textContent=text; }});
+    out.textContent=r.text; $("#btn-plan-copy").hidden=false;
+    try{ localStorage.setItem("azheng-plan",JSON.stringify({d:todayStr(),t:r.text})); }catch(e){}
+  }catch(err){
+    if(err&&err.code==="not_granted"){ out.textContent="沒有開啟 AI 權限，可以在這個頁面的權限設定裡允許後再試。"; }
+    else if(err&&err.code==="rate_limited"){ out.textContent="使用太頻繁了，請過一下再按。"; }
+    else if(err&&(err.name==="AbortError"||err.code==="aborted")){ }
+    else { out.textContent="這次沒排出來，請再按一次。"; }
+  }finally{ planCtl=null; btn.disabled=false; btn.textContent="重新排"; }
+});
+try{ const sp=JSON.parse(localStorage.getItem("azheng-plan")||"null"); if(sp&&sp.d===todayStr()&&sp.t){ $("#plan-out").hidden=false; $("#plan-out").textContent=sp.t; $("#btn-plan-copy").hidden=false; $("#plan-hint").hidden=true; $("#btn-plan").textContent="重新排"; } }catch(e){}
+
+document.querySelectorAll(".stat").forEach(b=>b.addEventListener("click",()=>{dueFilter=dueFilter===b.dataset.f?"":b.dataset.f; render();}));
+$("#filters").addEventListener("click",e=>{const b=e.target.closest(".chip"); if(!b)return; lvFilter=b.dataset.lv; document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed",String(c===b))); render();});
+$("#search").addEventListener("input",render);
+
+function nextCode(){ const n=clients.map(c=>parseInt(c.code,10)).filter(x=>!isNaN(x)); return String((n.length?Math.max(...n):0)+1).padStart(3,"0"); }
+
+/* ===== 整合：分區、物件庫、帶看紀錄、成交溫度、匯出 ===== */
+const fmtWan=n=>(n===null||n===undefined||n==="")?"":Number(n).toLocaleString()+" 萬";
+const lname=id=>{ const l=listings.find(x=>x.id===id); return l?l.title:""; };
+const vPlace=v=>lname(v.listingId)||v.place||"（未填物件）";
+const cname=id=>{ const c=clients.find(x=>x.id===id); return c?((c.code?c.code+" ":"")+(c.name||"")):"（客戶已刪除）"; };
+const md=s=>s?Number(String(s).slice(5,7))+"/"+Number(String(s).slice(8,10)):"";
+const CLOSED=["已成交","下架"];
+
+function setSec(s){
+  sec=s;
+  document.querySelectorAll(".secnav [data-sec]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.sec===s)));
+  ["clients","listings","visits"].forEach(k=>{ $("#pane-"+k).hidden=k!==s; });
+  try{ localStorage.setItem("azheng-sec",s); }catch(e){}
+}
+document.querySelectorAll(".secnav [data-sec]").forEach(b=>b.addEventListener("click",()=>setSec(b.dataset.sec)));
+try{ const s=localStorage.getItem("azheng-sec"); if(s==="listings"||s==="visits") setSec(s); }catch(e){}
+
+$("#f-stage").append(...STAGES.map((s,i)=>{ const o=el("option",null,i+"　"+s); o.value=String(i); return o; }));
+function renderSigs(arr){
+  const box=$("#sigs"); box.replaceChildren();
+  SIGNALS.forEach((s,i)=>{ const l=el("label"); const cb=document.createElement("input"); cb.type="checkbox"; cb.id="sig-"+i; cb.checked=!!arr[i];
+    cb.addEventListener("change",sigHint); l.append(cb, el("span",null,s)); box.append(l); });
+  sigHint();
+}
+function readSigs(){ return SIGNALS.map((_,i)=>{ const x=document.getElementById("sig-"+i); return !!(x&&x.checked); }); }
+function sigHint(){ const n=readSigs().filter(Boolean).length; $("#sig-hint").textContent="意願訊號 "+n+"/7"+(n>=2?"：可以考慮升級分類":"（勾兩項以上，考慮升級分類）"); }
+
+function fillVisList(box,list,label){
+  box.replaceChildren();
+  if(!list.length){ box.append(el("span","hint","還沒有帶看紀錄。")); return; }
+  list.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(v=>{
+    const b=el("button","small",md(v.date)+"　"+label(v)+(v.reaction?"｜"+String(v.reaction).slice(0,40):"")); b.type="button";
+    b.addEventListener("click",()=>openVisit(v)); box.append(b);
+  });
+}
+
+/* --- 物件庫 --- */
+function expiring(){ return listings.filter(l=>l.mandateEnd&&!CLOSED.includes(l.status)&&daysFrom(l.mandateEnd)<=30).sort((a,b)=>a.mandateEnd.localeCompare(b.mandateEnd)); }
+function renderExpWarn(){
+  const ex=expiring(), w=$("#exp-warn"), bd=$("#lst-badge");
+  bd.hidden=!ex.length; bd.textContent=ex.length;
+  if(!ex.length){ w.hidden=true; return; }
+  w.className="banner"+(ex.some(l=>daysFrom(l.mandateEnd)<=7)?" late":""); w.hidden=false; w.replaceChildren();
+  const left=l=>{ const d=daysFrom(l.mandateEnd); return d<0?"已過期 "+(-d)+" 天":"剩 "+d+" 天"; };
+  w.append(el("span",null,ex.length+" 間委託 30 天內到期："+ex.slice(0,3).map(l=>l.title+"（"+left(l)+"）").join("、")+(ex.length>3?"…":"")+"，記得找屋主續約。"));
+  const b=el("button",null,"看物件"); b.type="button"; b.addEventListener("click",()=>{ lstFilter="exp"; syncChips(); setSec("listings"); renderListings(); }); w.append(b);
+}
+function syncChips(){ document.querySelectorAll("#lst-filters .chip").forEach(c=>c.setAttribute("aria-pressed",String(c.dataset.st===lstFilter))); }
+$("#lst-filters").addEventListener("click",e=>{ const b=e.target.closest(".chip"); if(!b) return; lstFilter=b.dataset.st; syncChips(); renderListings(); });
+$("#lst-search").addEventListener("input",renderListings);
+function renderListings(){
+  const box=$("#lst-list"); if(!db) return;
+  const q=$("#lst-search").value.trim().toLowerCase();
+  const exIds=new Set(expiring().map(l=>l.id));
+  const rows=listings.filter(l=>{
+    if(lstFilter==="exp"){ if(!exIds.has(l.id)) return false; } else if(lstFilter && (l.status||"銷售中")!==lstFilter) return false;
+    if(!q) return true;
+    return [l.title,l.district,l.address,l.ptype,l.layout,l.owner,l.notes].join(" ").toLowerCase().includes(q);
+  }).sort((a,b)=>(CLOSED.includes(a.status)-CLOSED.includes(b.status))||String(a.title||"").localeCompare(String(b.title||""),"zh-Hant"));
+  box.replaceChildren();
+  if(!rows.length){ box.append(el("div","empty",listings.length?"這個條件下沒有物件。":"還沒有物件。按「＋ 物件」建第一間，之後帶看紀錄、AI 配案都會用到它。")); return; }
+  for(const l of rows){
+    const t=el("button","tile"); t.type="button";
+    const top=el("div","top"); top.append(el("span","ttl",l.title||"（未命名）"));
+    if(l.mandate) top.append(el("span","tag plain",l.mandate));
+    const st=l.status||"銷售中";
+    top.append(el("span","tag "+(st==="已成交"?"seen":st==="斡旋中"?"lv-斡旋買方":st==="下架"?"plain":""),st));
+    const vc=visits.filter(v=>v.listingId===l.id).length;
+    const unit=l.price&&l.ping?(l.price/l.ping).toFixed(1):null;
+    const pr=el("div","price"); pr.append(el("b",null,l.price?fmtWan(l.price):"未定價"));
+    pr.append(el("span","sub num",[l.ping?l.ping+" 坪":"",unit?unit+" 萬/坪":"","帶看 "+vc+" 組"].filter(Boolean).join("・")));
+    const h=l.priceHistory||[]; if(h.length>1&&h[0].price&&l.price&&h[0].price!==l.price) pr.append(el("span","sub num","原開 "+fmtWan(h[0].price)));
+    t.append(top, el("div","sub",[l.district,l.ptype,l.layout].filter(Boolean).join("・")||"區域與格局未填"), pr);
+    if(l.mandateEnd&&!CLOSED.includes(l.status)){ const d=daysFrom(l.mandateEnd); t.append(el("div",d<=7?"sub warn":"sub","委託到期 "+l.mandateEnd.replaceAll("-","/")+"（"+(d<0?"已過期 "+(-d)+" 天":"剩 "+d+" 天")+"）")); }
+    if(l.owner) t.append(el("div","sub","屋主："+l.owner));
+    t.addEventListener("click",()=>openListing(l));
+    box.append(t);
+  }
+}
+function lMsg(t,err){ const m=$("#l-msg"); m.textContent=t; m.className="msg"+(err?" err":""); }
+function openListing(l){
+  editingL=l&&l.id?listings.find(x=>x.id===l.id):null;
+  const d=l||{};
+  $("#l-title-h").textContent=editingL?(d.title||"物件"):"新增物件";
+  const set=(id,v)=>{ $(id).value=v??""; };
+  set("#l-title",d.title); $("#l-district").value=d.district||""; $("#l-ptype").value=d.ptype||""; set("#l-address",d.address);
+  set("#l-price",d.price); set("#l-ping",d.ping); set("#l-layout",d.layout); $("#l-status").value=d.status||"銷售中";
+  $("#l-mandate").value=d.mandate||""; set("#l-mandateEnd",d.mandateEnd); set("#l-owner",d.owner); set("#l-notes",d.notes);
+  const h=(d.priceHistory||[]).slice().reverse();
+  $("#l-hist").replaceChildren(...(h.length?h.map(x=>el("span",null,String(x.date).replaceAll("-","/")+"　"+fmtWan(x.price))):[el("span",null,"改開價時會自動記錄。")]));
+  $("#l-hist-sec").hidden=!editingL; $("#l-vis-sec").hidden=!editingL;
+  if(editingL){ const vs=visits.filter(v=>v.listingId===editingL.id); $("#l-vis-h").textContent="帶看紀錄（"+vs.length+" 組）"; fillVisList($("#l-vis"),vs,v=>cname(v.clientId)); }
+  $("#l-del").hidden=!editingL; $("#l-del").classList.remove("armed"); $("#l-del").textContent="刪除";
+  lMsg(""); $("#dlg-l").showModal();
+}
+$("#btn-addlst").addEventListener("click",()=>openListing(null));
+$("#l-cancel").addEventListener("click",()=>$("#dlg-l").close());
+$("#btn-l-addvis").addEventListener("click",()=>{ const id=editingL&&editingL.id; openVisit(null,{listingId:id}); });
+$("#ed-l").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!db){ lMsg("目前連不到資料庫，請重新整理頁面。",true); return; }
+  const num=id=>{ const v=$(id).value.trim(); return v===""?null:Number(v); };
+  const now=new Date().toISOString();
+  const body={title:$("#l-title").value.trim(),district:$("#l-district").value,ptype:$("#l-ptype").value,address:$("#l-address").value.trim(),
+    price:num("#l-price"),ping:num("#l-ping"),layout:$("#l-layout").value.trim(),status:$("#l-status").value,mandate:$("#l-mandate").value,
+    mandateEnd:$("#l-mandateEnd").value,owner:$("#l-owner").value.trim(),notes:$("#l-notes").value.trim(),updatedAt:now};
+  const old=editingL;
+  let hist=(old&&old.priceHistory)||[];
+  if(body.price!==null&&(!old||old.price!==body.price)) hist=hist.concat([{date:todayStr(),price:body.price}]);
+  body.priceHistory=hist;
+  $("#l-save").disabled=true; lMsg("儲存中…");
+  try{
+    if(old) await db.collection("listings").doc(old.id).update(body);
+    else { body.createdAt=now; await db.collection("listings").add(body); }
+    $("#dlg-l").close();
+  }catch(err){ lMsg(err&&err.code==="not_granted"?"你沒有寫入權限，只能檢視。":"沒存成功，請再按一次。",true); }
+  finally{ $("#l-save").disabled=false; }
+});
+$("#l-del").addEventListener("click",async()=>{
+  const b=$("#l-del");
+  if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="確定刪除這間物件？再按一次"; return; }
+  try{ await db.collection("listings").doc(editingL.id).delete(); $("#dlg-l").close(); }catch(e){ lMsg("刪除失敗，請再試一次。",true); }
+});
+
+/* --- 帶看紀錄 --- */
+function renderVisits(){
+  const box=$("#vis-list"); if(!db) return;
+  const m=todayStr().slice(0,7), mc=visits.filter(v=>String(v.date||"").startsWith(m)).length;
+  $("#vis-sum").textContent="本月帶看 "+mc+" 組・共 "+visits.length+" 組";
+  box.replaceChildren();
+  if(!visits.length){ box.append(el("div","empty","還沒有帶看紀錄。帶看完按「＋ 帶看紀錄」，選客戶和物件、寫下反應，AI 會幫你寫追蹤 LINE 和屋主回報。")); return; }
+  visits.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))).forEach(v=>{
+    const t=el("button","tile visit"); t.type="button";
+    const top=el("div","top"); top.append(el("span","ttl",cname(v.clientId)+" 看 "+vPlace(v)), el("span","due later",md(v.date)));
+    t.append(top);
+    if(v.reaction) t.append(el("div",null,v.reaction));
+    [["喜歡",v.likes],["疑慮",v.concerns],["成交障礙",v.obstacles],["下一步",v.nextStep?v.nextStep+(v.followDate?"（"+md(v.followDate)+" 追）":""):""]].forEach(([k,x])=>{ if(x) t.append(el("div","sub",k+"："+x)); });
+    t.addEventListener("click",()=>openVisit(v));
+    box.append(t);
+  });
+}
+function vMsg(t,err){ const m=$("#v-msg"); m.textContent=t; m.className="msg"+(err?" err":""); }
+function fillVisitSelects(clientId,listingId){
+  const cs=$("#v-client"); cs.replaceChildren();
+  const c0=el("option",null,"選客戶"); c0.value=""; cs.append(c0);
+  clients.slice().sort((a,b)=>String(a.code||"").localeCompare(String(b.code||""))).forEach(c=>{ const o=el("option",null,(c.code?c.code+" ":"")+(c.name||"")); o.value=c.id; cs.append(o); });
+  cs.value=clientId||"";
+  const ls=$("#v-listing"); ls.replaceChildren();
+  const l0=el("option",null,"物件庫沒有（下面直接寫）"); l0.value=""; ls.append(l0);
+  listings.filter(l=>l.status!=="下架"||l.id===listingId).forEach(l=>{ const o=el("option",null,l.title+(l.price?"（"+fmtWan(l.price)+"）":"")); o.value=l.id; ls.append(o); });
+  ls.value=listingId||""; $("#v-place-wrap").hidden=!!ls.value;
+}
+$("#v-listing").addEventListener("change",()=>{ $("#v-place-wrap").hidden=!!$("#v-listing").value; });
+function openVisit(v,preset){
+  ["dlg","dlg-l"].forEach(id=>{ const d=document.getElementById(id); if(d.open) d.close(); });
+  editingV=v&&v.id?visits.find(x=>x.id===v.id):null;
+  const d=Object.assign({date:todayStr()},preset||{},v||{});
+  $("#v-title-h").textContent=editingV?"帶看紀錄 "+md(d.date):"新增帶看紀錄";
+  fillVisitSelects(d.clientId,d.listingId);
+  const set=(id,x)=>{ $(id).value=x??""; };
+  set("#v-date",d.date); set("#v-place",d.place); set("#v-reaction",d.reaction); set("#v-likes",d.likes); set("#v-concerns",d.concerns);
+  set("#v-obstacles",d.obstacles); set("#v-next",d.nextStep); set("#v-follow",d.followDate); set("#v-line",d.lineDraft); set("#v-owner",d.ownerReport);
+  $("#v-del").hidden=!editingV; $("#v-del").classList.remove("armed"); $("#v-del").textContent="刪除";
+  vMsg(""); $("#v-ai-msg").textContent=""; $("#dlg-v").showModal();
+}
+function readVisit(){
+  const lid=$("#v-listing").value;
+  return {date:$("#v-date").value, clientId:$("#v-client").value, listingId:lid, place:lid?"":$("#v-place").value.trim(),
+    reaction:$("#v-reaction").value.trim(), likes:$("#v-likes").value.trim(), concerns:$("#v-concerns").value.trim(), obstacles:$("#v-obstacles").value.trim(),
+    nextStep:$("#v-next").value.trim(), followDate:$("#v-follow").value, lineDraft:$("#v-line").value.trim(), ownerReport:$("#v-owner").value.trim()};
+}
+$("#btn-addvis").addEventListener("click",()=>openVisit(null));
+$("#btn-c-addvis").addEventListener("click",()=>{ const id=editing&&editing.id; openVisit(null,{clientId:id}); });
+$("#v-cancel").addEventListener("click",()=>$("#dlg-v").close());
+$("#v-copy-line").addEventListener("click",e=>copyText($("#v-line").value.trim(),e.currentTarget));
+$("#v-copy-owner").addEventListener("click",e=>copyText($("#v-owner").value.trim(),e.currentTarget));
+$("#ed-v").addEventListener("submit",async e=>{
+  e.preventDefault();
+  if(!db){ vMsg("目前連不到資料庫，請重新整理頁面。",true); return; }
+  const body=readVisit();
+  if(!body.clientId){ vMsg("請選客戶。",true); return; }
+  if(!body.listingId&&!body.place){ vMsg("請選物件，或直接寫物件名稱。",true); return; }
+  const now=new Date().toISOString(); body.updatedAt=now;
+  $("#v-save").disabled=true; vMsg("儲存中…");
+  try{
+    if(editingV){ await db.collection("visits").doc(editingV.id).update(body); capMsg("帶看紀錄已更新。"); }
+    else {
+      body.createdAt=now; await db.collection("visits").add(body);
+      const c=clients.find(x=>x.id===body.clientId);
+      if(c){
+        const place=vPlace(body), l=listings.find(x=>x.id===body.listingId);
+        const t="帶看 "+place+(body.reaction?"："+body.reaction:"")+(body.obstacles?"｜障礙："+body.obstacles:"")+(body.nextStep?"｜下一步："+body.nextStep:"");
+        const patch={viewed:true,updatedAt:now,log:(c.log||[]).concat([{d:body.date||todayStr(),k:"帶看",t}]).slice(-300)};
+        const props=(c.props||[]).slice();
+        if(!props.some(p=>p.n===place)) props.push({n:place,ask:l&&l.price?l.price+" 萬":"",offer:"",floor:"",deal:"",note:[body.likes&&"喜歡："+body.likes,body.concerns&&"疑慮："+body.concerns].filter(Boolean).join("；")});
+        patch.props=props;
+        if(body.followDate){ patch.nextDate=body.followDate; patch.nextAction=body.nextStep||("追蹤帶看："+place); }
+        if(!(typeof c.stage==="number"&&c.stage>=2)) patch.stage=2;
+        await db.collection("clients").doc(c.id).update(patch);
+      }
+      capMsg("帶看已存，"+(c?c.name+" 的客戶卡已同步（已帶看、紀錄、看過物件"+(body.followDate?"、追蹤日":"")+"）。":"。"));
+    }
+    $("#dlg-v").close();
+  }catch(err){ vMsg(err&&err.code==="not_granted"?"你沒有寫入權限，只能檢視。":"沒存成功，請再按一次。",true); }
+  finally{ $("#v-save").disabled=false; }
+});
+$("#v-del").addEventListener("click",async()=>{
+  const b=$("#v-del");
+  if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="確定刪除這筆帶看？再按一次"; return; }
+  try{ await db.collection("visits").doc(editingV.id).delete(); $("#dlg-v").close(); }catch(e){ vMsg("刪除失敗，請再試一次。",true); }
+});
+$("#v-ai").addEventListener("click",async()=>{
+  const msg=$("#v-ai-msg");
+  if(!sample){ msg.textContent="這個畫面不能用 AI（這個版本不含 AI）。"; return; }
+  const v=readVisit(), c=clients.find(x=>x.id===v.clientId), l=listings.find(x=>x.id===v.listingId);
+  if(!c){ msg.textContent="先選客戶。"; return; }
+  const info={客戶稱呼:c.name||"",客戶分類:c.level||"未分類",客戶預算:c.budget||"",客戶需求:String(c.need||"").slice(0,200),決策人:c.who||"",
+    物件:vPlace(v),物件開價:l&&l.price?l.price+" 萬":"",格局:l?l.layout||"":"",屋主:l?l.owner||"":"",帶看日期:v.date,
+    客戶反應:v.reaction,喜歡:v.likes,疑慮:v.concerns,成交障礙:v.obstacles,下一步:v.nextStep,追蹤日期:v.followDate};
+  const prompt=`你是台中房仲黃守正（阿正，台灣房屋松竹十一期特許加盟店）。根據這次帶看，寫兩則可以直接傳的 LINE，只回 JSON：{"line":"給客戶的訊息","owner":"給屋主的訊息"}。
+共同規則：繁體中文、口語、親切有禮，自稱「阿正」，不用 Markdown 符號，不加任何說明。只用資料裡有的事實，不可編造價格、行情、屋主說法或期限。
+line（給客戶）：3～6 行。先謝謝他來看，接住他喜歡的點；針對疑慮說一個你會去做的具體動作（例如整理周邊實價登錄、幫他問屋主）；最後用好回答的二選一問題收尾。
+owner（給屋主）：3～5 行。有屋主稱呼就用，沒有就寫「屋主您好」。回報今天帶看與買方大致輪廓，不透露買方姓名、電話和預算數字；說客戶喜歡什麼、在意什麼；講清楚下一步與何時再回報。語氣專業，讓屋主感受到用心。
+資料：${JSON.stringify(info)}`;
+  const b=$("#v-ai"); b.disabled=true; b.textContent="撰寫中…"; msg.textContent="";
+  try{
+    const r=await sample.json(prompt,{cache:false}); const o=r&&typeof r==="object"?r:{};
+    if(typeof o.line==="string") $("#v-line").value=o.line.trim();
+    if(typeof o.owner==="string") $("#v-owner").value=o.owner.trim();
+    msg.textContent="已填進下面兩格，可以再改，按儲存才會存。";
+  }catch(err){ msg.textContent=err&&err.code==="not_granted"?"沒有開啟 AI 權限，可以在這個頁面的權限設定裡允許。":err&&err.code==="rate_limited"?"使用太頻繁了，請過一下再按。":"這次沒寫出來，請再按一次。"; }
+  finally{ b.disabled=false; b.textContent="AI 寫話術"; }
+});
+
+/* --- 匯出備份 --- */
+$("#btn-export").addEventListener("click",async e=>{
+  const btn=e.currentTarget;
+  const dl={save:async({filename,data})=>saveFile(filename,data,"text/csv;charset=utf-8")};
+  const say=t=>{ const o=btn.dataset.label||btn.textContent; btn.dataset.label=o; btn.textContent=t; setTimeout(()=>{ btn.textContent=o; },2200); };
+  if(!dl){ say("這個畫面不能下載"); return; }
+  const cell=v=>{ v=String(v??""); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v; };
+  const table=(title,head,list)=>"【"+title+"】\n"+head.join(",")+"\n"+list.map(r=>r.map(cell).join(",")).join("\n")+"\n\n";
+  let out="﻿";
+  out+=table("客戶",["編號","稱呼","身分","分類","已帶看","電話","產品類型","預算","區域","需求","同住／決策人","下次追蹤","下一步","進件日","來源","斡旋進度","待確認","最近紀錄"],
+    clients.map(c=>[c.code,c.name,c.role,c.level,c.viewed?"是":"否",c.phone,c.propType,c.budget,c.area,c.need,c.who,c.nextDate,c.nextAction,c.inDate,c.source,typeof c.stage==="number"?STAGES[c.stage]:"",(c.pending||[]).join("；"),((c.log||[]).slice(-1)[0]||{}).t||""]));
+  out+=table("物件",["名稱","行政區","類型","地址","開價(萬)","權狀坪數","格局","狀態","委託","委託到期","屋主","調價紀錄","備註"],
+    listings.map(l=>[l.title,l.district,l.ptype,l.address,l.price,l.ping,l.layout,l.status,l.mandate,l.mandateEnd,l.owner,(l.priceHistory||[]).map(h=>h.date+":"+h.price).join(" / "),l.notes]));
+  out+=table("帶看",["日期","客戶","物件","反應","喜歡","疑慮","成交障礙","下一步","追蹤日"],
+    visits.map(v=>[v.date,cname(v.clientId),vPlace(v),v.reaction,v.likes,v.concerns,v.obstacles,v.nextStep,v.followDate]));
+  try{ await dl.save({filename:"阿正追蹤台備份_"+todayStr()+".csv",data:out}); say("已匯出"); }
+  catch(err){ if(!(err&&err.code==="declined")) say("匯出失敗"); }
+});
+
+
+
+
+
+/* --- 資料層：GitHub 私人 repo 一個 JSON 檔；本機快取＋待上傳佇列，斷線也能先記，連上再補傳 --- */
+const REPO="gary19940110/hbox-system-private", FILE="customer-tracker/data/tracker.json", BRANCH="main";
+const TK_KEY="hbox-gh-token", CACHE_KEY="hbox-tracker-cache-v1", Q_KEY="hbox-tracker-queue-v1";
+const COLS=["clients","leads","listings","visits"];
+const ls={get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }};
+function saveFile(name,data,type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([data],{type})); a.download=name; document.body.append(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000); }
+const b64enc=str=>{ const b=new TextEncoder().encode(str); let x=""; for(let i=0;i<b.length;i+=0x8000) x+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000)); return btoa(x); };
+const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,"")),c=>c.charCodeAt(0)));
+const norm=o=>{ o=o&&typeof o==="object"?o:{}; COLS.forEach(k=>{ if(!o[k]||typeof o[k]!=="object") o[k]={}; }); return o; };
+const applyOp=(st,op)=>{ const c=st[op.c]=st[op.c]||{}; if(op.t==="set") c[op.id]=op.d; else if(op.t==="update"){ if(c[op.id]) Object.assign(c[op.id],op.d); } else if(op.t==="delete") delete c[op.id]; };
+const clone=o=>JSON.parse(JSON.stringify(o));
+function setSync(t,bad){ const b=$("#sync-st"); if(b){ b.textContent=t; b.style.color=bad?"var(--late)":""; } }
+function makeGhDb(){
+  let token=ls.get(TK_KEY,""), store=norm(ls.get(CACHE_KEY,null)), queue=ls.get(Q_KEY,[]), busy=false, timer=null, lastSync=null;
+  const subs={};
+  const emit=n=>{ const docs=Object.entries(store[n]||{}).map(([id,d])=>({id,data:()=>clone(d)})); (subs[n]||[]).forEach(f=>f({docs})); };
+  const emitAll=()=>COLS.forEach(emit);
+  const persist=()=>{ ls.set(CACHE_KEY,store); ls.set(Q_KEY,queue); };
+  const hhmm=()=>{ const d=new Date(); return pad(d.getHours())+":"+pad(d.getMinutes()); };
+  const status=()=>{ if(!token) setSync("未設定金鑰",true); else if(busy) setSync("同步中…"); else if(queue.length) setSync(queue.length+" 筆待上傳",true); else if(lastSync) setSync("已同步 "+lastSync); };
+  async function gh(method,body){
+    const r=await fetch("https://api.github.com/repos/"+REPO+"/contents/"+FILE+(method==="GET"?"?ref="+BRANCH+"&_="+Date.now():""),{method,cache:"no-store",
+      headers:{"Authorization":"Bearer "+token,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"},body:body?JSON.stringify(body):undefined});
+    if(r.status===401||r.status===403){ const e=new Error("auth"); e.code="auth"; throw e; }
+    return r;
+  }
+  async function fetchRemote(){ const r=await gh("GET"); if(r.status===404) return {data:norm({}),sha:null}; if(!r.ok) throw new Error("get "+r.status); const j=await r.json(); return {data:norm(JSON.parse(b64dec(j.content||"")||"{}")),sha:j.sha}; }
+  async function sync(){
+    if(!token||busy) return; busy=true; status();
+    try{
+      for(let tries=0;tries<4;tries++){
+        const {data,sha}=await fetchRemote();
+        const n=queue.length;
+        if(!n){ store=data; persist(); emitAll(); break; }
+        const next=clone(data); queue.slice(0,n).forEach(op=>applyOp(next,op));
+        const r=await gh("PUT",{message:"追蹤台更新（"+n+" 筆）",content:b64enc(JSON.stringify(next,null,1)),branch:BRANCH,...(sha?{sha}:{})});
+        if(r.status===409||r.status===422){ continue; }
+        if(!r.ok) throw new Error("put "+r.status);
+        queue=queue.slice(n); store=next; queue.forEach(op=>applyOp(store,op)); persist(); emitAll();
+        if(!queue.length) break;
+      }
+      lastSync=hhmm();
+    }catch(err){ busy=false; if(err.code==="auth"){ setSync("金鑰失效",true); showSetup("金鑰無效或權限不足，請重新貼一次。"); } else setSync("離線，"+queue.length+" 筆待上傳",true); return; }
+    busy=false; status();
+  }
+  const later=()=>{ clearTimeout(timer); timer=setTimeout(sync,700); };
+  const write=op=>{ applyOp(store,op); queue.push(op); persist(); emit(op.c); status(); later(); };
+  const genId=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+  setInterval(()=>{ if(!document.hidden) sync(); },60000);
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden) sync(); });
+  window.addEventListener("online",sync);
+  return {
+    hasToken:()=>!!token, setToken(t){ token=t; ls.set(TK_KEY,t); sync(); }, clearToken(){ token=""; try{ localStorage.removeItem(TK_KEY); }catch(e){} status(); },
+    sync, status, dump:()=>clone(store),
+    collection(n){ return {
+      onSnapshot(f){ (subs[n]=subs[n]||[]).push(f); setTimeout(()=>emit(n),0); return ()=>{}; },
+      async add(d){ const id=genId(); write({t:"set",c:n,id,d:clone(d)}); return {id}; },
+      doc(id){ return {
+        async set(d){ write({t:"set",c:n,id,d:clone(d)}); },
+        async update(p){ if(!(store[n]||{})[id]) throw {code:"not_found"}; write({t:"update",c:n,id,d:clone(p)}); },
+        async delete(){ write({t:"delete",c:n,id}); } }; } }; }
+  };
+}
+function showSetup(msg){ $("#gh-setup").hidden=false; $("#gh-msg").textContent=msg||""; }
+$("#gh-save").addEventListener("click",()=>{ const t=$("#gh-token").value.trim(); if(!/^(github_pat_|ghp_)/.test(t)){ $("#gh-msg").textContent="看起來不是 GitHub 金鑰（應該是 github_pat_ 開頭）。"; return; } $("#gh-token").value=""; $("#gh-setup").hidden=true; db.setToken(t); });
+$("#btn-key").addEventListener("click",()=>{ if(confirm("要在這台裝置換一把 GitHub 金鑰嗎？（資料不會受影響）")){ db.clearToken(); showSetup(""); } });
+$("#sync-st").addEventListener("click",()=>db&&db.sync());
+$("#btn-json").addEventListener("click",e=>{ if(!db) return; saveFile("阿正追蹤台資料_"+todayStr()+".json",JSON.stringify(db.dump(),null,1),"application/json"); const b=e.currentTarget,o=b.textContent; b.textContent="已匯出"; setTimeout(()=>{b.textContent=o;},2000); });
+(()=>{
+  db=makeGhDb();
+  db.collection("clients").onSnapshot(snap=>{clients=snap.docs.map(d=>Object.assign({id:d.id},d.data())); render();});
+  db.collection("leads").onSnapshot(snap=>{leads=snap.docs.map(d=>Object.assign({id:d.id},d.data())); render();});
+  db.collection("listings").onSnapshot(snap=>{listings=snap.docs.map(d=>Object.assign({id:d.id},d.data())); render();});
+  db.collection("visits").onSnapshot(snap=>{visits=snap.docs.map(d=>Object.assign({id:d.id},d.data())); render();});
+  if(!db.hasToken()) showSetup(""); else db.sync();
+  db.status();
+})();
+</script>
+
+</body></html>
