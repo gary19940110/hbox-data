@@ -418,7 +418,7 @@ const todayStr = () => ymd(new Date());
 const addDays = n => { const d=new Date(); d.setDate(d.getDate()+n); return ymd(d); };
 const daysFrom = s => { if(!s) return null; const [y,m,d]=s.split("-").map(Number); const t=new Date(); t.setHours(0,0,0,0); return Math.round((new Date(y,m-1,d)-t)/86400000); };
 const WD=["日","一","二","三","四","五","六"];
-const RULE={"斡旋買方":1,"A買":2,"B買":3,"C買":7};
+const RULE={"斡旋買方":1,"A買":1,"B買":3,"C買":7};
 const TRACKED=[["budget","預算"],["area","區域"],["need","需求"],["propType","產品類型"],["level","分類"],["role","身分"],["who","同住／決策人"]];
 $("#today").textContent=(()=>{const d=new Date();return ymd(d).replaceAll("-","/")+" 星期"+WD[d.getDay()];})();
 
