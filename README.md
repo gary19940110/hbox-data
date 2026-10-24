@@ -4,4 +4,4 @@
 
 
 ## 追蹤台連結
-- 客戶追蹤台（現用，核心C，僅本人可開）：https://claude.ai/artifact/N7TZBhNC1RSwzrUcZvqD1e
+- 客戶追蹤台：本機版，在私人 repo hbox-system-private/customer-tracker/阿正客戶追蹤台.html（C 版成品 2026-10-24 已刪）
