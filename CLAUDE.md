@@ -20,6 +20,7 @@
 - `threads-bot/`：Threads 自動發文系統 → GitHub 公開 repo `threads-bot`（GitHub Actions 運作中，中控台 https://gary19940110.github.io/threads-bot/；專案自己的 `CLAUDE.md` 有詳細說明；機器人每小時自動 commit，改之前先 `git pull`）
 - `找物件/`：找社區在售物件、社區資料庫（聖斌分享的模組，有自己的 `CLAUDE.md`）→ GitHub 私人 repo `hbox-find-listings`，**不可公開**
 - `房地小賴/`：依追蹤台買方條件用房地小賴篩物件（有自己的 `CLAUDE.md`）→ GitHub 私人 repo `hbox-fangdi`；篩選結果（含客戶名）存 `hbox-system-private/房地小賴篩選/`
+- `astrology-master/`：占星、八字、紫微、奇門、梅花、塔羅易經定局的命理與占卜工具（Claude Code 技能與占卜網頁，有自己的 `README.md`；阿斌是協作者）→ GitHub 私人 repo `astrology-master`；**只放程式，不放客戶出生資料**；部署時整個資料夾複製到 `~/.claude/skills/astrology-master/`
 - 其他部分放在 `hbox-system/` 下，另建資料夾。
 
 ## 工作流程
