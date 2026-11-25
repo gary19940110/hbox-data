@@ -21,7 +21,7 @@
 - `找物件/`：找社區在售物件、社區資料庫（聖斌分享的模組，有自己的 `CLAUDE.md`）→ GitHub 私人 repo `hbox-find-listings`，**不可公開**
 - `房地小賴/`：依追蹤台買方條件用房地小賴篩物件（有自己的 `CLAUDE.md`）→ GitHub 私人 repo `hbox-fangdi`；篩選結果（含客戶名）存 `hbox-system-private/房地小賴篩選/`
 - `astrology-master/`：占星、八字、紫微、奇門、梅花、塔羅易經定局的命理與占卜工具（Claude Code 技能與占卜網頁，有自己的 `README.md`；阿斌是協作者）→ GitHub 私人 repo `astrology-master`；**只放程式，不放客戶出生資料**；本機 `~/.claude/skills/astrology-master/` 是連到這個資料夾的目錄連結（只有一份，改這裡就是改技能）
-- `market-videos/`：追蹤 YouTube 市場分析頻道（目前 Allen Reminick），排程任務「【每日】市場影片中文摘要」每天 08:00 抓新影片、寫繁中摘要到 `summaries/` → GitHub 私人 repo `market-videos`；加頻道改 `channels.json`
+- `market-videos/`：追蹤市場分析師（Allen Reminick、Ed Yardeni），排程任務「【每日】市場影片中文摘要」每天 08:00 抓新影片／文章、寫繁中摘要到 `summaries/`、對帳預測（`scorecard.md`） → GitHub 私人 repo `market-videos`；加頻道改 `channels.json`
 - 其他部分放在 `hbox-system/` 下，另建資料夾。
 
 ## 工作流程
